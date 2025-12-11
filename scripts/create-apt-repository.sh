@@ -119,39 +119,35 @@ Codename: $DIST
 Architectures: $ARCH
 Components: $COMPONENT
 Description: RDK and XMiDT component packages
-Date: $(date -R)
+Date: $(date -u "+%a, %d %b %Y %H:%M:%S %z")
 EOF
 
-# Calculate checksums for Release file
+# Calculate checksums for Release file with correct file sizes
 cd "$REPO_ROOT/dists/$DIST"
-{
-    echo "MD5Sum:"
-    find . -type f -name 'Packages*' -exec md5sum {} \; | sed 's/\.\///' | awk '{printf " %s %16d %s\n", $1, 0, $2}'
-    
-    echo "SHA1:"
-    find . -type f -name 'Packages*' -exec sha1sum {} \; | sed 's/\.\///' | awk '{printf " %s %16d %s\n", $1, 0, $2}'
-    
-    echo "SHA256:"
-    find . -type f -name 'Packages*' -exec sha256sum {} \; | sed 's/\.\///' | awk '{printf " %s %16d %s\n", $1, 0, $2}'
-} >> Release
 
-# Update file sizes in Release
-if command -v stat &> /dev/null; then
-    # Fix file sizes in Release file
-    for hash_type in MD5Sum SHA1 SHA256; do
-        while IFS= read -r line; do
-            if [[ "$line" =~ ^\ ([a-f0-9]+)\ +[0-9]+\ (.+)$ ]]; then
-                hash="${BASH_REMATCH[1]}"
-                file="${BASH_REMATCH[2]}"
-                if [ -f "$file" ]; then
-                    size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null || echo "0")
-                    sed -i.bak "s|^\( $hash\) \+[0-9]\+ \($file\)$|\1 $size \2|" Release
-                fi
-            fi
-        done < <(sed -n "/$hash_type:/,/^$/p" Release | grep -v "^$hash_type:" | grep -v "^$")
-    done
-    rm -f Release.bak
-fi
+# MD5Sum
+echo "MD5Sum:" >> Release
+find . -type f -name 'Packages*' | while read f; do
+    size=$(stat -f%z "$f" 2>/dev/null || stat -c%s "$f" 2>/dev/null || echo "0")
+    md5=$(md5sum "$f" 2>/dev/null | awk '{print $1}' || md5 -q "$f" 2>/dev/null || echo "0")
+    printf " %s %16d %s\n" "$md5" "$size" "${f#./}"
+done >> Release
+
+# SHA1
+echo "SHA1:" >> Release
+find . -type f -name 'Packages*' | while read f; do
+    size=$(stat -f%z "$f" 2>/dev/null || stat -c%s "$f" 2>/dev/null || echo "0")
+    sha1=$(sha1sum "$f" 2>/dev/null | awk '{print $1}' || shasum -a 1 "$f" 2>/dev/null | awk '{print $1}' || echo "0")
+    printf " %s %16d %s\n" "$sha1" "$size" "${f#./}"
+done >> Release
+
+# SHA256
+echo "SHA256:" >> Release
+find . -type f -name 'Packages*' | while read f; do
+    size=$(stat -f%z "$f" 2>/dev/null || stat -c%s "$f" 2>/dev/null || echo "0")
+    sha256=$(sha256sum "$f" 2>/dev/null | awk '{print $1}' || shasum -a 256 "$f" 2>/dev/null | awk '{print $1}' || echo "0")
+    printf " %s %16d %s\n" "$sha256" "$size" "${f#./}"
+done >> Release
 
 cd - > /dev/null
 
