@@ -1,0 +1,80 @@
+name: Package trower-base64
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'packages/trower-base64/**'
+      - 'scripts/**'
+      - '.github/workflows/package-trower-base64.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'packages/trower-base64/**'
+      - 'scripts/**'
+      - '.github/workflows/package-trower-base64.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        platform: [arm64, amd64]
+        include:
+          - platform: arm64
+            docker_platform: linux/arm64
+          - platform: amd64
+            docker_platform: linux/amd64
+    
+    runs-on: ubuntu-latest
+    name: Build trower-base64 for ${{ matrix.platform }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU for multi-arch builds
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
+      - name: Build package in Docker
+        run: |
+          docker run --rm --platform=${{ matrix.docker_platform }} \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ubuntu:20.04 \
+            bash -c '
+              set -euo pipefail
+              
+              # Install base dependencies
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update -qq
+              apt-get install -y -qq \
+                git \
+                build-essential \
+                pkg-config \
+                file \
+                binutils \
+                dpkg-dev \
+                meson \
+                ninja-build \
+                python3-pip
+              
+              # Source build helpers
+              source scripts/build-helpers/build-common.sh
+              
+              # Build package
+              build_package trower-base64 ${{ matrix.platform }}
+            '
+      
+      - name: List generated packages
+        run: |
+          echo "Generated packages:"
+          ls -lh *.deb || echo "No packages found"
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: trower-base64-${{ matrix.platform }}-packages
+          path: '*.deb'

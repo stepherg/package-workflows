@@ -1,0 +1,79 @@
+name: Package safec
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'packages/safec/**'
+      - 'scripts/**'
+      - '.github/workflows/package-safec.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'packages/safec/**'
+      - 'scripts/**'
+      - '.github/workflows/package-safec.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        platform: [arm64, amd64]
+        include:
+          - platform: arm64
+            docker_platform: linux/arm64
+          - platform: amd64
+            docker_platform: linux/amd64
+    
+    runs-on: ubuntu-latest
+    name: Build safec for ${{ matrix.platform }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU for multi-arch builds
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: ${{ matrix.docker_platform }}
+
+      - name: Build package in Docker
+        run: |
+          docker run --rm --platform=${{ matrix.docker_platform }} \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            debian:bookworm \
+            bash -c '
+              set -euo pipefail
+              
+              # Install base dependencies
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update -qq
+              apt-get install -y -qq \
+                git \
+                build-essential \
+                autoconf \
+                automake \
+                libtool \
+                pkg-config \
+                file \
+                binutils \
+                dpkg-dev \
+                perl
+              
+              # Source build helpers
+              source scripts/build-helpers/build-common.sh
+              
+              # Build package
+              build_package safec ${{ matrix.platform }}
+            '
+
+      - name: List generated packages
+        run: ls -lh *.deb
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: safec-${{ matrix.platform }}-packages
+          path: '*.deb'

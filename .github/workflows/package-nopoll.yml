@@ -1,0 +1,75 @@
+name: Package nopoll
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'packages/nopoll/**'
+      - 'scripts/**'
+      - '.github/workflows/package-nopoll.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'packages/nopoll/**'
+      - 'scripts/**'
+      - '.github/workflows/package-nopoll.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        platform: [arm64, amd64]
+        include:
+          - platform: arm64
+            docker_platform: linux/arm64
+          - platform: amd64
+            docker_platform: linux/amd64
+    
+    runs-on: ubuntu-latest
+    name: Build nopoll for ${{ matrix.platform }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU for multi-arch builds
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
+      - name: Build package in Docker
+        run: |
+          docker run --rm --platform=${{ matrix.docker_platform }} \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ubuntu:20.04 \
+            bash -c '
+              set -euo pipefail
+              
+              # Install base dependencies
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update
+              apt-get install -y \
+                build-essential \
+                git \
+                curl \
+                autoconf \
+                automake \
+                libtool \
+                pkg-config \
+                libssl-dev
+
+              # Source build helpers
+              source scripts/build-helpers/build-common.sh
+
+              build_package nopoll ${{ matrix.platform }}
+            '
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nopoll-packages-${{ matrix.platform }}
+          path: |
+            *.deb
+          retention-days: 30

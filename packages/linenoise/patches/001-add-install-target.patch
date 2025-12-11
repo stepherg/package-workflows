@@ -1,0 +1,34 @@
+--- a/Makefile	2025-12-10 10:26:02.132768690 -0500
++++ b/Makefile	2025-12-10 10:26:02.137884212 -0500
+@@ -1,3 +1,24 @@
++PREFIX ?= /usr
++LIBDIR ?= $(PREFIX)/lib
++INCLUDEDIR ?= $(PREFIX)/include
++
++all: liblinenoise.so.1.0 liblinenoise.a
++
++liblinenoise.so.1.0: linenoise.c linenoise.h
++	$(CC) -fPIC -shared -Wl,-soname,liblinenoise.so.1 -o liblinenoise.so.1.0 linenoise.c -Wall -W -Os -g
++
++liblinenoise.a: linenoise.c linenoise.h
++	$(CC) -c -o linenoise.o linenoise.c -Wall -W -Os -g
++	ar rcs liblinenoise.a linenoise.o
++
++install: all
++	install -d $(DESTDIR)$(LIBDIR)
++	install -m 755 liblinenoise.so.1.0 $(DESTDIR)$(LIBDIR)/
++	ln -sf liblinenoise.so.1.0 $(DESTDIR)$(LIBDIR)/liblinenoise.so.1
++	ln -sf liblinenoise.so.1.0 $(DESTDIR)$(LIBDIR)/liblinenoise.so
++	install -d $(DESTDIR)$(INCLUDEDIR)
++	install -m 644 linenoise.h $(DESTDIR)$(INCLUDEDIR)/
++
+ linenoise_example: linenoise.h linenoise.c
+ 
+ linenoise_example: linenoise.c example.c
+@@ -5,3 +26,6 @@
+ 
+ clean:
+ 	rm -f linenoise_example
++	rm -f liblinenoise.so.1.0 liblinenoise.a linenoise.o
++
++.PHONY: all install clean

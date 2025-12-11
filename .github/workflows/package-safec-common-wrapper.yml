@@ -1,0 +1,88 @@
+name: Package safec-common-wrapper
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'packages/safec-common-wrapper/**'
+      - 'scripts/**'
+      - '.github/workflows/package-safec-common-wrapper.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'packages/safec-common-wrapper/**'
+      - 'scripts/**'
+      - '.github/workflows/package-safec-common-wrapper.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build safec-common-wrapper
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build package in Docker
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            debian:bookworm \
+            bash -c '
+              set -euo pipefail
+              
+              # Install dependencies
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update -qq
+              apt-get install -y -qq dpkg-dev
+              
+              # Package metadata
+              PROJECT=safec-common-wrapper
+              VERSION=1.0
+              ARCH=all
+              
+              # Create package structure
+              STAGING_DIR=/tmp/staging-$PROJECT
+              mkdir -p $STAGING_DIR/usr/include
+              mkdir -p $STAGING_DIR/DEBIAN
+              
+              # Install header file
+              cp packages/$PROJECT/files/safec_lib.h $STAGING_DIR/usr/include/
+              
+              # Create control file
+              echo "Package: safec-common-wrapper" > $STAGING_DIR/DEBIAN/control
+              echo "Version: 1.0" >> $STAGING_DIR/DEBIAN/control
+              echo "Section: libdevel" >> $STAGING_DIR/DEBIAN/control
+              echo "Priority: optional" >> $STAGING_DIR/DEBIAN/control
+              echo "Architecture: all" >> $STAGING_DIR/DEBIAN/control
+              echo "Maintainer: Stephen Gregory <stephenrgregory@gmail.com>" >> $STAGING_DIR/DEBIAN/control
+              echo "Description: SafeC wrapper definition header" >> $STAGING_DIR/DEBIAN/control
+              echo " A safec wrapper definition header file providing macros and" >> $STAGING_DIR/DEBIAN/control
+              echo " compatibility layer for SafeC library functions." >> $STAGING_DIR/DEBIAN/control
+              echo " ." >> $STAGING_DIR/DEBIAN/control
+              echo " This is a header-only package that provides compatibility macros" >> $STAGING_DIR/DEBIAN/control
+              echo " for safe string and memory operations." >> $STAGING_DIR/DEBIAN/control
+              
+              # Calculate installed size
+              SIZE=$(du -sk $STAGING_DIR | awk '\''{print $1}'\'')
+              DEBIAN_SIZE=$(du -sk $STAGING_DIR/DEBIAN | awk '\''{print $1}'\'')
+              SIZE=$((SIZE - DEBIAN_SIZE))
+              echo "Installed-Size: $SIZE" >> $STAGING_DIR/DEBIAN/control
+              
+              # Build package
+              dpkg-deb --build $STAGING_DIR ${PROJECT}_${VERSION}_${ARCH}.deb
+              
+              echo "Package created successfully:"
+              ls -lh ${PROJECT}_${VERSION}_${ARCH}.deb
+            '
+
+      - name: List generated packages
+        run: ls -lh *.deb
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: safec-common-wrapper-packages
+          path: '*.deb'

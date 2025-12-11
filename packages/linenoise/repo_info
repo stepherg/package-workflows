@@ -1,0 +1,3 @@
+REPO_URL="https://github.com/antirez/linenoise.git"
+VERSION="1.0"
+COMMIT="e26268d"

@@ -1,0 +1,13 @@
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index cd74d7f..e90b86b 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -56,6 +56,8 @@ target_link_libraries (parodus
+     -lcjwt
+     -lpthread
+     -lrt
++    -llog4c
++    -lrdkloggers
+     )
+ 
+ if (FEATURE_DNS_QUERY)

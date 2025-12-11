@@ -1,0 +1,50 @@
+name: Package linenoise
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'packages/linenoise/**'
+      - '.github/workflows/package-linenoise.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        include:
+          - platform: amd64
+            docker_platform: linux/amd64
+          - platform: arm64
+            docker_platform: linux/arm64
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      
+      - name: Build linenoise for ${{ matrix.platform }}
+        run: |
+          docker run --rm --platform=${{ matrix.docker_platform }} \
+            -v $PWD:/workspace \
+            -w /workspace \
+            ubuntu:20.04 \
+            bash -c '
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update
+              apt-get install -y gcc git file binutils make
+              
+              source scripts/build-helpers/build-common.sh
+              
+              build_package linenoise ${{ matrix.platform }}
+            '
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linenoise-${{ matrix.platform }}
+          path: |
+            linenoise*.deb

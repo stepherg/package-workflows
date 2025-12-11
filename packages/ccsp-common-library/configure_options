@@ -1,0 +1,1 @@
+CFLAGS="$CFLAGS $(pkg-config --cflags dbus-1)" LDFLAGS="$LDFLAGS $(pkg-config --libs dbus-1)"

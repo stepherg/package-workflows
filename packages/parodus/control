@@ -1,0 +1,19 @@
+Source: parodus
+Version: 2.10.0
+Upstream-URL: https://github.com/xmidt-org/parodus.git
+Upstream-Ref: 8d4c61a16faea4fc629b570542e7f29ccc27a5fa
+Build-Depends: cmake, pkg-config, libssl-dev, libcurl4-openssl-dev, uuid-dev, libcjson-dev, libmsgpackc2, nanomsg, nopoll, trower-base64, cimplog, cjwt, wrp-c, rbus
+
+Package: parodus
+Section: net
+Priority: optional
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: XMiDT client coordinator
+ parodus is a C implementation of the XMiDT client coordinator. XMiDT
+ is a highly scalable, highly available, generic message routing system.
+ .
+ parodus acts as a client-side agent that connects devices to the XMiDT
+ cloud infrastructure, handling WebSocket connections, message routing,
+ and protocol translation between devices and cloud services.
+ .
+ This package contains the parodus daemon and utilities.

@@ -1,0 +1,17 @@
+Source: safec-common-wrapper
+Version: 1.0
+Build-Depends: 
+Section: libdevel
+Priority: optional
+Maintainer: Stephen Gregory <stephenrgregory@gmail.com>
+Standards-Version: 3.9.6
+Homepage: https://github.com/rdkcentral
+
+Package: safec-common-wrapper
+Architecture: all
+Description: SafeC wrapper definition header
+ A safec wrapper definition header file providing macros and
+ compatibility layer for SafeC library functions.
+ .
+ This is a header-only package that provides compatibility macros
+ for safe string and memory operations.

@@ -1,0 +1,173 @@
+name: Package ccsp-common-library
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'packages/ccsp-common-library/**'
+      - 'scripts/**'
+      - '.github/workflows/package-ccsp-common-library.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'packages/ccsp-common-library/**'
+      - 'scripts/**'
+      - '.github/workflows/package-ccsp-common-library.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        platform: [arm64, amd64]
+        include:
+          - platform: arm64
+            docker_platform: linux/arm64
+          - platform: amd64
+            docker_platform: linux/amd64
+    
+    runs-on: ubuntu-latest
+    name: Build ccsp-common-library for ${{ matrix.platform }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU for multi-arch builds
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
+      - name: Build package in Docker
+        run: |
+          docker run --rm --platform=${{ matrix.docker_platform }} \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ubuntu:20.04 \
+            bash -c '
+              set -euo pipefail
+              
+              # Install base dependencies
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update -qq
+              apt-get install -y -qq \
+                git \
+                build-essential \
+                autoconf \
+                automake \
+                libtool \
+                pkg-config \
+                file \
+                binutils \
+                dpkg-dev \
+                zlib1g-dev \
+                libdbus-1-dev \
+                libssl-dev
+              
+
+              # Install dependency packages from GitHub releases or local
+              echo "Installing linenoise dependency..."
+              LINENOISE_DEB="linenoise_1.0_${{ matrix.platform }}.deb"
+              if [ -f "$LINENOISE_DEB" ]; then
+                dpkg -i "$LINENOISE_DEB" || apt-get install -f -y
+              else
+                echo "Downloading linenoise from GitHub releases..."
+                curl -sSL "https://github.com/${{ github.repository }}/releases/download/linenoise-1.0/$LINENOISE_DEB" -o "$LINENOISE_DEB" || true
+                if [ -f "$LINENOISE_DEB" ]; then
+                  dpkg -i "$LINENOISE_DEB" || apt-get install -f -y
+                else
+                  echo "Warning: linenoise package not found"
+                fi
+              fi
+              
+              echo "Installing rbus dependencies..."
+              RBUS_DEB="rbus_2.7.0_${{ matrix.platform }}.deb"
+              LIBRBUS_DEV_DEB="librbus-dev_2.7.0_${{ matrix.platform }}.deb"              
+              if [ -f "$RBUS_DEB" ] && [ -f "$LIBRBUS_DEV_DEB" ]; then
+                dpkg -i "$RBUS_DEB" "$LIBRBUS_DEV_DEB" || apt-get install -f -y
+              else
+                echo "Downloading rbus from GitHub releases..."
+                curl -sSL "https://github.com/${{ github.repository }}/releases/download/rbus-2.7.0/$RBUS_DEB" -o "$RBUS_DEB" || true
+                curl -sSL "https://github.com/${{ github.repository }}/releases/download/rbus-2.7.0/$LIBRBUS_DEV_DEB" -o "$LIBRBUS_DEV_DEB" || true
+                if [ -f "$RBUS_DEB" ] && [ -f "$LIBRBUS_DEV_DEB" ]; then
+                  dpkg -i "$RBUS_DEB" "$LIBRBUS_DEV_DEB" || apt-get install -f -y
+                else
+                  echo "Warning: rbus packages not found"
+                fi
+              fi
+
+              echo "Installing safec dependencies..."
+              LIBSAFEC_DEB="libsafec_3.7.1_${{ matrix.platform }}.deb"
+              LIBSAFEC_DEV_DEB="libsafec-dev_3.7.1_${{ matrix.platform }}.deb"              
+              if [ -f "$LIBSAFEC_DEB" ] && [ -f "$LIBSAFEC_DEV_DEB" ]; then
+                dpkg -i "$LIBSAFEC_DEB" "$LIBSAFEC_DEV_DEB" || apt-get install -f -y
+              else
+                echo "Downloading safec from GitHub releases..."
+                curl -sSL "https://github.com/${{ github.repository }}/releases/download/safec-3.7.1/$LIBSAFEC_DEB" -o "$LIBSAFEC_DEB" || true
+                curl -sSL "https://github.com/${{ github.repository }}/releases/download/safec-3.7.1/$LIBSAFEC_DEV_DEB" -o "$LIBSAFEC_DEV_DEB" || true
+                if [ -f "$LIBSAFEC_DEB" ] && [ -f "$LIBSAFEC_DEV_DEB" ]; then
+                  dpkg -i "$LIBSAFEC_DEB" "$LIBSAFEC_DEV_DEB" || apt-get install -f -y
+                else
+                  echo "Warning: rbus packages not found"
+                fi
+              fi
+
+              echo "Installing rdklogger dependencies..."
+              LIBRDKLOGGER_DEB="librdk-logger_2.4.0_${{ matrix.platform }}.deb"
+              LIBRDKLOGGER_DEV_DEB="librdk-logger-dev_2.4.0_${{ matrix.platform }}.deb"              
+              if [ -f "$LIBRDKLOGGER_DEB" ] && [ -f "$LIBRDKLOGGER_DEV_DEB" ]; then
+                dpkg -i "$LIBRDKLOGGER_DEB" "$LIBRDKLOGGER_DEV_DEB" || apt-get install -f -y
+              else
+                echo "Downloading rdklogger from GitHub releases..."
+                curl -sSL "https://github.com/${{ github.repository }}/releases/download/rdklogger-2.4.0/$LIBRDKLOGGER_DEB" -o "$LIBRDKLOGGER_DEB" || true
+                curl -sSL "https://github.com/${{ github.repository }}/releases/download/rdklogger-2.4.0/$LIBRDKLOGGER_DEV_DEB" -o "$LIBRDKLOGGER_DEV_DEB" || true
+                if [ -f "$LIBRDKLOGGER_DEB" ] && [ -f "$LIBRDKLOGGER_DEV_DEB" ]; then
+                  dpkg -i "$LIBRDKLOGGER_DEB" "$LIBRDKLOGGER_DEV_DEB" || apt-get install -f -y
+                else
+                  echo "Warning: rdklogger packages not found"
+                fi
+              fi
+
+              echo "Installing trower-base64 dependencies..."
+              LIBTROWER_BASE64_DEB="libtrower-base64_1.2.7_${{ matrix.platform }}.deb"
+              LIBTROWER_BASE64_DEV_DEB="libtrower-base64-dev_1.2.7_${{ matrix.platform }}.deb"              
+              if [ -f "$LIBTROWER_BASE64_DEB" ] && [ -f "$LIBTROWER_BASE64_DEV_DEB" ]; then
+                dpkg -i "$LIBTROWER_BASE64_DEB" "$LIBTROWER_BASE64_DEV_DEB" || apt-get install -f -y
+              else
+                echo "Downloading trower-base64 from GitHub releases..."
+                curl -sSL "https://github.com/${{ github.repository }}/releases/download/trower-base64-1.2.7/$LIBTROWER_BASE64_DEB" -o "$LIBTROWER_BASE64_DEB" || true
+                curl -sSL "https://github.com/${{ github.repository }}/releases/download/trower-base64-1.2.7/$LIBTROWER_BASE64_DEV_DEB" -o "$LIBTROWER_BASE64_DEV_DEB" || true
+                if [ -f "$LIBTROWER_BASE64_DEB" ] && [ -f "$LIBTROWER_BASE64_DEV_DEB" ]; then
+                  dpkg -i "$LIBTROWER_BASE64_DEB" "$LIBTROWER_BASE64_DEV_DEB" || apt-get install -f -y
+                else
+                  echo "Warning: trower-base64 packages not found"
+                fi
+              fi
+
+              # Source build helpers
+              source scripts/build-helpers/build-common.sh
+              
+              # Build package
+              export CFLAGS="$(pkg-config --cflags dbus-1) \
+                  -I/usr/include/safeclib \
+                  -I/usr/include/rbus \
+                  -I/usr/include/rtmessage \
+                  -I/usr/include/trower-base64 \
+                  -D_NO_PKI_KB5_SUPPORT \
+                  -D_ANSC_USE_OPENSSL_"
+
+              export LDFLAGS="$(pkg-config --libs dbus-1)"
+
+              build_package ccsp-common-library ${{ matrix.platform }}
+            '
+      
+      - name: List generated packages
+        run: |
+          echo "Generated packages:"
+          ls -lh *.deb || echo "No packages found"
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ccsp-common-library-${{ matrix.platform }}-packages
+          path: '*.deb'

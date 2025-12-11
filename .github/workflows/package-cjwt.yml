@@ -1,0 +1,100 @@
+name: Package cjwt
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'packages/cjwt/**'
+      - 'scripts/**'
+      - '.github/workflows/package-cjwt.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'packages/cjwt/**'
+      - 'scripts/**'
+      - '.github/workflows/package-cjwt.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        platform: [arm64, amd64]
+        include:
+          - platform: arm64
+            docker_platform: linux/arm64
+          - platform: amd64
+            docker_platform: linux/amd64
+    
+    runs-on: ubuntu-latest
+    name: Build cjwt for ${{ matrix.platform }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU for multi-arch builds
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
+      - name: Build package in Docker
+        run: |
+          docker run --rm --platform=${{ matrix.docker_platform }} \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ubuntu:20.04 \
+            bash -c '
+              set -euo pipefail
+              
+              # Install base dependencies
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update -qq
+              apt-get install -y -qq \
+                git \
+                build-essential \
+                cmake \
+                file \
+                binutils \
+                dpkg-dev \
+                curl \
+                libssl-dev \
+                libcjson-dev
+              
+              # Install trower-base64 dependency
+              echo "Installing trower-base64 dependency..."
+              TROWER_DEB="libtrower-base64_1.2.7_${{ matrix.platform }}.deb"
+              TROWER_DEV_DEB="libtrower-base64-dev_1.2.7_${{ matrix.platform }}.deb"
+              if [ -f "$TROWER_DEB" ] && [ -f "$TROWER_DEV_DEB" ]; then
+                dpkg -i "$TROWER_DEB" "$TROWER_DEV_DEB" || apt-get install -f -y
+              else
+                echo "Downloading trower-base64 from GitHub releases..."
+                curl -sSL "https://github.com/${{ github.repository }}/releases/download/trower-base64-1.2.7/$TROWER_DEB" -o "$TROWER_DEB" || true
+                curl -sSL "https://github.com/${{ github.repository }}/releases/download/trower-base64-1.2.7/$TROWER_DEV_DEB" -o "$TROWER_DEV_DEB" || true
+                if [ -f "$TROWER_DEB" ] && [ -f "$TROWER_DEV_DEB" ]; then
+                  dpkg -i "$TROWER_DEB" "$TROWER_DEV_DEB" || apt-get install -f -y
+                else
+                  echo "Warning: trower-base64 packages not found"
+                fi
+              fi
+              
+              # Source build helpers
+              source scripts/build-helpers/build-common.sh
+              
+              export CFLAGS="-I/usr/include/cjson \
+                  -I/usr/include/trower-base64"
+
+              # Build package
+              build_package cjwt ${{ matrix.platform }}
+            '
+      
+      - name: List generated packages
+        run: |
+          echo "Generated packages:"
+          ls -lh *.deb || echo "No packages found"
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cjwt-${{ matrix.platform }}-packages
+          path: '*.deb'

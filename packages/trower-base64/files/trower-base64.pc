@@ -1,0 +1,9 @@
+prefix=/usr
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: trower-base64
+Description: C implementation of base64 encode/decode
+Version: 1.2.7
+Libs: -L${libdir} -ltrower-base64

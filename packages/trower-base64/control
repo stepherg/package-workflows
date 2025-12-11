@@ -1,0 +1,27 @@
+Source: trower-base64
+Version: 1.2.7
+Upstream-URL: https://github.com/Comcast/trower-base64.git
+Upstream-Ref: a6b418afee8bf03a86e35bbc3260880926347279
+Build-Depends: pkg-config, meson, ninja-build
+Section: libs
+Priority: optional
+Maintainer: Comcast
+Standards-Version: 3.9.6
+Homepage: https://github.com/Comcast/trower-base64
+
+Package: libtrower-base64
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Base64 encode/decode library
+ C implementation of base64 encode/decode.
+ .
+ This package contains the runtime library.
+
+Package: libtrower-base64-dev
+Architecture: any
+Section: libdevel
+Depends: libtrower-base64 (= ${version}), ${misc:Depends}
+Description: Base64 encode/decode library - development files
+ C implementation of base64 encode/decode.
+ .
+ This package contains the development headers and static libraries.

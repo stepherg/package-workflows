@@ -1,0 +1,16 @@
+Source: rbus-elements
+Version: 1.0.0
+Upstream-URL: https://github.com/stepherg/rbus-elements.git
+Upstream-Ref: v1.0.0
+Build-Depends: pkg-config, libjansson-dev, libcjson-dev, libmsgpack-dev, rbus, librbus-dev
+
+Package: rbus-elements
+Section: utils
+Priority: optional
+Depends: libc6, libjansson4, libcjson1, libmsgpackc2, rbus
+Description: RBus Elements Provider
+ Lightweight helper service that registers RBUS data model elements,
+ tables, events and methods from a JSON description plus a small set
+ of built-in DeviceInfo properties.
+ .
+ This package contains the rbus_elements binary and configuration.

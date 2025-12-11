@@ -1,0 +1,111 @@
+name: Package quickjs
+
+# Triggers - customize as needed for your project
+on:
+  # Uncomment to enable scheduled builds (check for updates weekly)
+  # schedule:
+  #   - cron: '0 0 * * 0'  # Weekly on Sunday at midnight UTC
+  
+  # Manual trigger with optional upstream ref override
+  workflow_dispatch:
+    inputs:
+      upstream_ref:
+        description: 'Upstream tag/branch/commit to build (overrides control file)'
+        required: false
+        default: ''
+  
+  # Trigger on changes to this project's packaging metadata
+  push:
+    paths:
+      - 'packages/quickjs/**'
+      - '.github/workflows/package-quickjs.yml'
+      - 'scripts/build-helpers/**'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build:
+    name: Build quickjs for ${{ matrix.platform }}
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: amd64
+            docker_platform: linux/amd64
+          - platform: arm64
+            docker_platform: linux/arm64
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up QEMU for multi-arch builds
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+      
+      - name: Build package in Docker
+        run: |
+          docker run --rm --platform=${{ matrix.docker_platform }} \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ubuntu:20.04 \
+            bash -c '
+              set -euo pipefail
+              
+              # Install base dependencies
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update -qq
+              apt-get install -y -qq \
+                git \
+                build-essential \
+                file \
+                binutils \
+                dpkg-dev
+              
+              # Parse control file to get build dependencies
+              PROJECT="quickjs"
+              CONTROL_FILE="packages/$PROJECT/control"
+              
+              # Extract and install build dependencies
+              if [ -f "$CONTROL_FILE" ]; then
+                BUILD_DEPS=$(grep "^Build-Depends:" "$CONTROL_FILE" | sed "s/^Build-Depends: *//" || echo "")
+                if [ -n "$BUILD_DEPS" ]; then
+                  echo "Installing build dependencies: $BUILD_DEPS"
+                  # Convert comma-separated list to space-separated
+                  BUILD_DEPS_CLEAN=$(echo "$BUILD_DEPS" | tr "," "\n" | sed "s/ *(.*)//" | tr "\n" " ")
+                  apt-get install -y -qq $BUILD_DEPS_CLEAN || true
+                fi
+              fi
+              
+              # Source build helpers
+              source scripts/build-helpers/build-common.sh
+              
+              # Build package (with optional upstream ref override)
+              UPSTREAM_REF="${{ inputs.upstream_ref }}"
+              build_package "$PROJECT" "${{ matrix.platform }}" "$UPSTREAM_REF"
+            '
+      
+      - name: List generated packages
+        run: |
+          echo "Generated packages:"
+          ls -lh *.deb || echo "No packages found"
+      
+      # - name: Upload packages as artifacts
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: quickjs-${{ matrix.platform }}-deb
+      #     path: '*.deb'
+      #     retention-days: 90
+      #     if-no-files-found: error
+      
+      # Optional: Upload to GitHub release if this is a release build
+      # Uncomment the following step to enable release uploads
+      # - name: Upload to release
+      #   if: github.event_name == 'release'
+      #   uses: softprops/action-gh-release@v1
+      #   with:
+      #     files: '*.deb'
