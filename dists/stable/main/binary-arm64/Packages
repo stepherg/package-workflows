@@ -158,10 +158,10 @@ Architecture: arm64
 Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 292
 Filename: pool/main/l/librbus-dev/librbus-dev_2.7.0_arm64.deb
-Size: 35216
-MD5sum: a0ff34728ae45f532cae89c686ab5e59
-SHA1: a94bc4570347d7c98130329dd78c7ac2f1ad6c63
-SHA256: d3611758629ac85ac857dce6fb95877aefb34f9533f58b151cd1ccdfe9e24165
+Size: 35148
+MD5sum: 0d89462f052a5161a1c53dcf6b426b39
+SHA1: 27d98346bca962dc83440261c226959bd740068e
+SHA256: f828415e8a0f3ab438d4d139722384e7b21b736e46550b8003428c64c23c4b18
 Section: misc
 Priority: optional
 Description: librbus-dev
@@ -300,11 +300,12 @@ Version: 2.10.0
 Architecture: arm64
 Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 664
+Depends: rbus, libcimplog, libcjwt, libnanomsg, libnopoll, libtrower-base64, libwrp-c, librdk-logger
 Filename: pool/main/p/parodus/parodus_2.10.0_arm64.deb
-Size: 179104
-MD5sum: bdd85e9ce93927e60ae98315c33afa6d
-SHA1: 084feb3cc8d8f7a5ec94bedb02ed9bb91e2406ee
-SHA256: bd27606882655cde1a4ea7ce42765154ea6b4e63bccee37b36df085d3ba28ccb
+Size: 179572
+MD5sum: 247ca5015ef6bbcfb6dffa1354c278f0
+SHA1: 89a61502b905a210bd0f5bd207ce8aa996e85e67
+SHA256: 995abb2f047b0e28ecccebba5369bdb0a4a34091012c08f2c6032d3f8f697c67
 Section: misc
 Priority: optional
 Description: XMiDT client coordinator
@@ -351,12 +352,12 @@ Package: rbus
 Version: 2.7.0
 Architecture: arm64
 Maintainer: Package Workflows <packages@example.com>
-Installed-Size: 4492
+Installed-Size: 4504
 Filename: pool/main/r/rbus/rbus_2.7.0_arm64.deb
-Size: 938412
-MD5sum: 29b49dc8ff1a6138ba995074aa56d050
-SHA1: 2d9535c97639fe4dad22acffb9920e43c3004424
-SHA256: 39e38ffc1ff70f301faf7a0a5fd1f9d9d3ffa1e52b5dd0359ac9d16da90692b8
+Size: 941896
+MD5sum: f537655636ada137aa7d0ade6da6f192
+SHA1: 4e2ad675dd34eeca55d904093c83ed213d1016d2
+SHA256: b9447b0ce00e97d5da2b12c3715eb2c5540bed3c6823afcaad8ba99c26d8b00e
 Section: misc
 Priority: optional
 Description: rbus
@@ -365,13 +366,13 @@ Package: rbus-dbg
 Version: 2.7.0
 Architecture: arm64
 Maintainer: Package Workflows <packages@example.com>
-Installed-Size: 1944
+Installed-Size: 1952
 Depends: rbus (= 2.7.0)
 Filename: pool/main/r/rbus-dbg/rbus-dbg_2.7.0_arm64.deb
-Size: 357984
-MD5sum: ef0e5fe3a3f7a4bd28ca13276fb006b8
-SHA1: 66563a7de6933cd35210a10f967c4b649ff96aa7
-SHA256: 9a42b9d14825f5cd85567a09abe26c3a05274f5171437910942c61641aa3aa3c
+Size: 359588
+MD5sum: 008614cf93fce1201c209e4586cd2259
+SHA1: 9e40ae7c7f31b6a957e5147b57b6e8c6e860ba84
+SHA256: 87003b8da334fe3d8e78144e26ebed2f29dbbc44649f04fac7b8842f718f7123
 Section: debug
 Priority: optional
 Description: Debug symbols for rbus
