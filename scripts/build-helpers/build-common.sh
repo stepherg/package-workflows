@@ -552,7 +552,7 @@ create_package_from_section() {
     
     # Extract metadata for this package from control file
     local start_line=$(grep -n "^Package: *$pkg_name\$" "$control_file" | cut -d: -f1)
-    local next_line=$(grep -n "^Package:" "$control_file" | awk -v start="$start_line" '$1 > start {print $1; exit}' | cut -d: -f1)
+    local next_line=$(grep -n "^Package:" "$control_file" | cut -d: -f1 | awk -v start="$start_line" '$1 > start {print; exit}')
     
     if [ -z "$next_line" ]; then
         # Last package in file
