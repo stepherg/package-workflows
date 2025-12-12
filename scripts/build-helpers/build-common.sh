@@ -395,8 +395,17 @@ create_single_deb() {
     
     # Remove ${misc:Depends} template variable (not used in simple packaging)
     depends="${depends//\$\{misc:Depends\}/}"
+    # Remove ${perl:Depends} template variable
+    depends="${depends//\$\{perl:Depends\}/}"
     # Clean up any resulting issues: double commas, leading/trailing commas, extra spaces
     depends=$(echo "$depends" | sed 's/,,\+/,/g; s/^[, ]\+//; s/[, ]\+$//; s/  \+/ /g')
+    
+    # Log the final dependencies
+    if [ -n "$depends" ]; then
+        log_info "Package dependencies: $depends"
+    else
+        log_info "No package dependencies"
+    fi
     
     # Generate control file
     cat > "$pkg_dir/DEBIAN/control" << EOF
