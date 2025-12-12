@@ -5,9 +5,9 @@ Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 28
 Filename: pool/main/l/libcimplog/libcimplog_1.0.3_arm64.deb
 Size: 5576
-MD5sum: 0f0c0e08015438df4499e294b60d6020
-SHA1: ab0d34230345a87309c73af8636f7039d2f15d10
-SHA256: 1740e12640a1a85ba673387a11aa910ecf38ebb9956c4817f68276a12b6e2fd5
+MD5sum: 53bdcf16d2a4cd582dfff7da87021020
+SHA1: 01c0d35c751971eb818d0df6a50fbd321d321b8d
+SHA256: 40752c9033869775968c95235208e2ea5b376988dbbeb3f9b306a19b787ec840
 Section: libs
 Priority: optional
 Description: Simple logging library - runtime
@@ -25,10 +25,10 @@ Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 40
 Depends: libcimplog (= 1.0.3)
 Filename: pool/main/l/libcimplog-dev/libcimplog-dev_1.0.3_arm64.deb
-Size: 5524
-MD5sum: 1c18930861211e654027a3d4dd50434a
-SHA1: 04afbbde1ff811c10402c91f8463ab59a1dd8ccb
-SHA256: e473639cdf3b979b73b1d4d60e4559c85e2ee045a4277ccdb0ae651776827d94
+Size: 5528
+MD5sum: 09f272cf6d6c2177cc87295942a4cb1b
+SHA1: 2d8d9400b29f017eaf572eb0050d18e2073fb82f
+SHA256: 011be456b342ecb5640cd637a674d63b0888cd5b8be785624f2ab287b9136c93
 Section: libdevel
 Priority: optional
 Description: Simple logging library - development files
@@ -45,10 +45,10 @@ Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 64
 Depends: libtrower-base64
 Filename: pool/main/l/libcjwt/libcjwt_2.3.0_arm64.deb
-Size: 15884
-MD5sum: 06fcf9ba4631e040e71c7c05c0675963
-SHA1: 692144c759b20f1be74a5252659a18a70d3993dd
-SHA256: cf02070278bc33dc117207752be68be920fedf996f93693aeefa6d53adc8de87
+Size: 15892
+MD5sum: 3409ef8da025e0cd4c5a11d9924fd7ae
+SHA1: 0f8b27947f83d234f86f9d03f70a4d5aeecec9c9
+SHA256: f13585762ed02b3efab073f25a58899addf0509f2490e2e76bd58ee58f80efe0
 Section: libs
 Priority: optional
 Description: C JWT implementation - runtime
@@ -69,10 +69,10 @@ Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 88
 Depends: libcjwt (= 2.3.0)
 Filename: pool/main/l/libcjwt-dev/libcjwt-dev_2.3.0_arm64.deb
-Size: 16660
-MD5sum: 5bdf6bad3a00ec6f8ee1bf92669802e6
-SHA1: 61702bbaec8eb8983c2eab4eff8f1a2df3fd7922
-SHA256: f6164680768d33f27f6270dbd8641651d2efb22561d1e2f68836ee67e5714e7a
+Size: 16636
+MD5sum: c3670c09481927f7e65c5ba6730a72f7
+SHA1: 518db133d128f65b9168548238ff80689c3210be
+SHA256: df56d230d005294ec154aed247b8e51c7c080395f267f842563ece69106499f0
 Section: libdevel
 Priority: optional
 Description: C JWT implementation - development files
@@ -88,10 +88,10 @@ Architecture: arm64
 Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 1520
 Filename: pool/main/l/libnanomsg/libnanomsg_1.2.2_arm64.deb
-Size: 336988
-MD5sum: dab5657fad9e058e3f87b47dfa358a88
-SHA1: f39b568b4dc144c03e7245d535cd97647f2387d0
-SHA256: b7e5e867345f1d19c2294eb0d9481fc91ed52a6b076b4073f7557f7679efa92d
+Size: 336500
+MD5sum: 24882ea027e9cd32b1ae87aa36832635
+SHA1: a94fbbb5dbf88ac549c61e68c536ad84fa223b4b
+SHA256: 45efc820551c3390cdf215794d26d01d8333ea0b005553f7bdebfcde97736a71
 Section: libs
 Priority: optional
 Description: High-performance implementation of scalability protocols - runtime
@@ -113,10 +113,10 @@ Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 76
 Depends: libnanomsg (= 1.2.2)
 Filename: pool/main/l/libnanomsg-dev/libnanomsg-dev_1.2.2_arm64.deb
-Size: 5616
-MD5sum: 471855944163c0e92ef495d2618cd93b
-SHA1: 30365427e8c1281ae3c411f96eeeb1ea35ee13b8
-SHA256: 34ce2c8acbd6486141818c4de871ae5cf088dde3f11fd7682f88907131466b66
+Size: 5608
+MD5sum: c9df88b91b0cd88a4d92268f6bec77fd
+SHA1: 1941d690152a0cad57e4bd437ef0ddcdc055c6e7
+SHA256: e69ddb34867701afc24e7db7cad189016f59596f852a8488a67ea94f81ce5408
 Section: libdevel
 Priority: optional
 Description: High-performance implementation of scalability protocols - development
@@ -132,10 +132,10 @@ Architecture: arm64
 Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 480
 Filename: pool/main/l/libnopoll/libnopoll_1.0.4_arm64.deb
-Size: 126048
-MD5sum: 5bc62d33e8711388c588fefc2d047309
-SHA1: 539d204f31e3d222df6f56ba16f6d6a32f42e8cc
-SHA256: 8624831e3512dc2e4ce4d37f5247620fd7b5672e370c567c851dfc22a3861501
+Size: 126212
+MD5sum: a308d20fc0ff5b9f7e89a76a208188ad
+SHA1: bf51f99f9dbf4e9f7b0df8126fbc77049290cd85
+SHA256: b97abebb6356d4faf8f88c4ae6495b0c2a7faf3d01c647a13842c07b991581d2
 Section: libs
 Priority: optional
 Description: WebSocket library - runtime
@@ -153,10 +153,10 @@ Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 1036
 Depends: libnopoll (= 1.0.4)
 Filename: pool/main/l/libnopoll-dev/libnopoll-dev_1.0.4_arm64.deb
-Size: 178632
-MD5sum: ebc49e89fe5853e6590a013706dec619
-SHA1: 27d39409d7bcbae26bcc35902962e1f2ddf21b7d
-SHA256: fa1cf9a503664d86df64d77cb27e1283e0dd0ffe576439c452c58b660f4aa6ba
+Size: 178660
+MD5sum: 4d5c4e0309059ab7235f2f94bcac55e5
+SHA1: ee261ab4e2c28e3903f2946350dbc0a23da48818
+SHA256: a1e09ad00c5e93f19241f1509de9f75ecf2b120b6667862865ec5b2987980874
 Section: libdevel
 Priority: optional
 Description: WebSocket library - development files
@@ -167,23 +167,6 @@ Description: WebSocket library - development files
  .
  This package contains headers and development files.
 
-Package: libquickjs-dev
-Version: 2025-12-03
-Architecture: arm64
-Maintainer: Package Workflows <packages@example.com>
-Installed-Size: 9072
-Depends: quickjs (= 2025-12-03)
-Filename: pool/main/l/libquickjs-dev/libquickjs-dev_2025-12-03_arm64.deb
-Size: 1692896
-MD5sum: 8548f3b0b7ca3a56c3b6d3abba282eec
-SHA1: 49912102c0184616f842eebd96f88e68607785e9
-SHA256: 34a5f7906c08508b9765935075fb040b367ebf3008d99dfe67bc4716ae260187
-Section: libdevel
-Priority: optional
-Description: Development files for QuickJS
- This package contains the header files and static library needed to
- develop applications that use the QuickJS engine.
-
 Package: librbus-dev
 Version: 2.7.0
 Architecture: arm64
@@ -191,10 +174,10 @@ Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 292
 Depends: rbus (= 2.7.0)
 Filename: pool/main/l/librbus-dev/librbus-dev_2.7.0_arm64.deb
-Size: 35356
-MD5sum: 363187546ee18d69b9fba51858799069
-SHA1: c6c2fc038756322ce9889744ee5ca9e2606bc77e
-SHA256: e204be15c7fa68ab8ea0874de51a9bbfba14dc67e908fdefb791759581fc158f
+Size: 35328
+MD5sum: 16395dbfb500819fc392869d90eee914
+SHA1: 0688e6314ff207b8e965af678f87698ffd1c896d
+SHA256: 51569943966d8889e5a9e89ac609e1b803e6c1ebaa9b68c8be550a86367a8a23
 Section: libdevel
 Priority: optional
 Description: RDK Bus messaging system - development files
@@ -211,10 +194,10 @@ Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 196
 Depends: libc6, liblog4c3
 Filename: pool/main/l/librdk-logger/librdk-logger_2.4.0_arm64.deb
-Size: 46316
-MD5sum: 73ca0d0fc9a1fddf07cfcf9b841923cb
-SHA1: 30beb719ac4f9d42f70402a01e83762d0e948646
-SHA256: 3bcf3ebd05699657003412ffe96b574117ed027617e87fb14ec7fe89d933cd51
+Size: 46280
+MD5sum: 852277e8bf76b374de7f349944fd8b67
+SHA1: ab78e15061c99c403ef5a85c5d197e67ee338ee9
+SHA256: 158aeeec69abb62af606347649be3fff84496a3232fc265b7d59bd4a45f5abab
 Section: libs
 Priority: optional
 Description: RDK Logger - Runtime library
@@ -232,10 +215,10 @@ Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 244
 Depends: librdk-logger (= 2.4.0)
 Filename: pool/main/l/librdk-logger-dev/librdk-logger-dev_2.4.0_arm64.deb
-Size: 46792
-MD5sum: 647ec13f523f39571dfdf52773c55bc0
-SHA1: 31c5f1a8590b5ab98237e0289b181cabb9a45eaf
-SHA256: 707ad3f778589746c9e6f2ca74f33619d0dbb8b3f7a1fab49a12a4abba91d463
+Size: 46764
+MD5sum: 46dfeea3eee3d81dbfdd2a373018c5c6
+SHA1: d5d1ec458c2c34c4301c6a65a6ddeab0d21c6a57
+SHA256: 2aedff7bb099d905918544b20c3505f1096a42fc3d90313c7ab88d77356b628c
 Section: libdevel
 Priority: optional
 Description: RDK Logger - Development files
@@ -250,9 +233,9 @@ Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 48
 Filename: pool/main/l/libtrower-base64/libtrower-base64_1.2.7_arm64.deb
 Size: 11092
-MD5sum: 32d28eb243c3275b1d025baf5d0e68cd
-SHA1: 25b671aa8bb86a572c51940a696aead8441ff56d
-SHA256: aed057f9f2f493383815f8ab37a9ba9c6040f4472c4a6bfed2c1eecdc295b031
+MD5sum: d2a0b432dd504a5b896f7bf1d8438806
+SHA1: c28936a0f75ce05a9535dc92a6d45cf2e314fca4
+SHA256: 0159f18ed325a95efac7bc854d88f74d5608246c93784d9d59c65b357431b4b8
 Section: misc
 Priority: optional
 Description: Base64 encode/decode library
@@ -267,10 +250,10 @@ Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 32
 Depends: libtrower-base64 (= 1.2.7)
 Filename: pool/main/l/libtrower-base64-dev/libtrower-base64-dev_1.2.7_arm64.deb
-Size: 2652
-MD5sum: 67bc4f5ee33f152df586a8343b108cbf
-SHA1: 26ad6197515bf37c833bab53e9c9a57a3f81f6c2
-SHA256: c2607224b59b8f61362a7e4a2a458ddcc8e9e61f12dd130b61acbca1f958abcb
+Size: 2660
+MD5sum: 69a1305ad506b405ea64066673fa07d8
+SHA1: bf614544208cb1e4d35ef02d1df01a92a43c5a42
+SHA256: 5096042f3ae618cb3047a06f58ead1fff5a48e5b9f95aeffded095fb42dd1960
 Section: libdevel
 Priority: optional
 Description: Base64 encode/decode library - development files
@@ -285,10 +268,10 @@ Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 164
 Depends: libtrower-base64, libcimplog
 Filename: pool/main/l/libwrp-c/libwrp-c_1.1.3_arm64.deb
-Size: 42372
-MD5sum: 62fa8d785b522dd932831a2607db7cdc
-SHA1: 3a467efa1007dc33a27b0b95db659db48ab665bb
-SHA256: cdc8aa6a77b1ccb3a39f9912ddbdc52c39dadffd220b4f1d3558e53a3dbe1e9b
+Size: 42344
+MD5sum: 484aeeb8e9fac0170f43d81b6f727c2d
+SHA1: 473ae002226522946db29f3487068dc2e7426ef8
+SHA256: 0d2ec521ad93ea3aff901d51b889cbd2959e2a3c4c4eda81620668aa3e81b9c2
 Section: libs
 Priority: optional
 Description: C implementation of Web Routing Protocol - runtime
@@ -309,10 +292,10 @@ Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 260
 Depends: libwrp-c (= 1.1.3)
 Filename: pool/main/l/libwrp-c-dev/libwrp-c-dev_1.1.3_arm64.deb
-Size: 47424
-MD5sum: a1d18634110f3257e1c3c2a7348c294a
-SHA1: 446384886fd3ccc4ebd139c85e3299454db70762
-SHA256: 77c2c0dccfd3f3e12d1c20dc29c2b06f452a688932873daa083ec83b6b042d25
+Size: 47428
+MD5sum: ba44ac6771259c8e196e0c427624fec3
+SHA1: 53c1851cbe887a8d133eb0631954a93614c758a3
+SHA256: 54e3ebdf2b50f683c2b1fc9af2d66b87fe11495a94be891d3f64787615ba11d6
 Section: libdevel
 Priority: optional
 Description: C implementation of Web Routing Protocol - development files
@@ -321,47 +304,22 @@ Description: C implementation of Web Routing Protocol - development files
  .
  This package contains headers and development files.
 
-Package: quickjs
-Version: 2025-12-03
+Package: linenoise
+Version: 1.0
 Architecture: arm64
 Maintainer: Package Workflows <packages@example.com>
-Installed-Size: 1872
-Depends: libc6 (>= 2.17)
-Filename: pool/main/q/quickjs/quickjs_2025-12-03_arm64.deb
-Size: 406976
-MD5sum: 1e5468a95ed92c3736f487caf41621e2
-SHA1: d11bb3406366201f6888ae15dced4d3ef8cbc5e8
-SHA256: f5f7a53597623da90e7a436c367a58b4d85769e24420b69ae51f4f79c9fd6410
-Section: interpreters
+Installed-Size: 100
+Filename: pool/main/l/linenoise/linenoise_1.0_arm64.deb
+Size: 27100
+MD5sum: fe0cf974c87c940cbf3b846c51c5f035
+SHA1: 2af03d221ecac192138c3a29923295cfcc6a011d
+SHA256: f931be27ce7f6207eeb8197bb821278ab80ed60e13ad389299f20a6ebd9fadb5
+Section: misc
 Priority: optional
-Description: Small and embeddable JavaScript engine
- QuickJS is a small and embeddable JavaScript engine. It supports
- the ES2020 specification including modules, asynchronous generators,
- proxies and BigInt.
- .
- It includes:
-  - A command line interpreter (qjs)
-  - A compiler (qjsc)
-  - Support for ES2020 modules
- .
- It is designed to be small and fast while supporting most of the
- JavaScript language features.
-
-Package: quickjs-dbg
-Version: 2025-12-03
-Architecture: arm64
-Maintainer: Package Workflows <packages@example.com>
-Installed-Size: 10344
-Depends: quickjs (= 2025-12-03)
-Filename: pool/main/q/quickjs-dbg/quickjs-dbg_2025-12-03_arm64.deb
-Size: 1510832
-MD5sum: eaf76ee4f0f750be33f837799ec4acfb
-SHA1: 6ab703e29f6c11658b36fabdea244a97bee25b20
-SHA256: 19fcb5e68a63b23a19d52aebba1dcc0602f6191a432c87d6036a0abfd5a65367
-Section: debug
-Priority: optional
-Description: Debug symbols for quickjs
- This package contains the debugging symbols for quickjs.
+Description: Minimal line editing library
+ A minimal, zero-config, BSD licensed, readline replacement.
+ Linenoise is a line editing library used to provide readline-like
+ functionality to command line applications with minimal dependencies.
 
 Package: rbus
 Version: 2.7.0
@@ -370,10 +328,10 @@ Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 4504
 Depends: linenoise
 Filename: pool/main/r/rbus/rbus_2.7.0_arm64.deb
-Size: 941492
-MD5sum: d3402fd7c5183b1893f6c80acca4046e
-SHA1: f35bd045d5b93c0bc0f38f13255d8f27f5a9e988
-SHA256: b70dc50d2856d78576b129c8201a5c57a06540497b470a61a7f9501c735274d9
+Size: 941940
+MD5sum: eaa01c6eade45095821897bcf2fea567
+SHA1: 39e0596cadc62d55bf1ae048da17c9ec452e70cd
+SHA256: 406a1243c9166c8765f58c5f3f2ec34fb4fc69e61b91f6c32701006767fffda1
 Section: libs
 Priority: optional
 Description: RDK Bus messaging system - runtime
@@ -392,10 +350,10 @@ Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 1952
 Depends: rbus (= 2.7.0)
 Filename: pool/main/r/rbus-dbg/rbus-dbg_2.7.0_arm64.deb
-Size: 359724
-MD5sum: e9ec2af1512d52d42252e941f63ccad9
-SHA1: 631c68285e389e9cda1aae1651ef844febcfa1d2
-SHA256: 30071cb6a08f274cebf766608ab75f6e8d58f07ff474886b3964e7aad9836dca
+Size: 359732
+MD5sum: aa284fc5eb1ed4294ab142d49895cb22
+SHA1: 6c86cc3ed9e41221aec9fd7e8e0d89332edcc1b5
+SHA256: 19f61c7aeb7ca3708134c939c1e70b338505f1c500386abacabbd69b00c5103e
 Section: debug
 Priority: optional
 Description: Debug symbols for rbus
@@ -408,10 +366,10 @@ Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 196
 Depends: libc6, librdk-logger (= 2.4.0)
 Filename: pool/main/r/rdk-logger-utils/rdk-logger-utils_2.4.0_arm64.deb
-Size: 46220
-MD5sum: dfc7059186e3e8a9944bafe5ce4d9f12
-SHA1: 396ddcb46090747f89ba41661dfd10d5ec5bc8db
-SHA256: 0e2994d67cc0b465de03388a55be5ed7937adb5847fa4475086611c60c102336
+Size: 46184
+MD5sum: 9aeee71f96901131f9a69b38b68c1c63
+SHA1: 0be76867030954169c27fef1e8bc9fd073fb0977
+SHA256: 5711559efb21abf7223161435902c943882853fed2f26c2d59b22e5a3e82eb80
 Section: utils
 Priority: optional
 Description: RDK Logger - Utilities
