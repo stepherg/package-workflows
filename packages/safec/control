@@ -2,7 +2,7 @@ Source: safec
 Version: 3.7.1
 Upstream-URL: https://github.com/rurban/safeclib.git
 Upstream-Ref: v3.7.1
-Build-Depends: pkg-config, autoconf, automake, libtool
+Build-Depends: perl
 Section: libs
 Priority: optional
 Maintainer: Stephen Gregory <stephenrgregory@gmail.com>
@@ -19,7 +19,7 @@ Description: Safe C Library
 Package: libsafec-dev
 Architecture: any
 Section: libdevel
-Depends: libsafec (= ${binary:Version}), ${misc:Depends}
+Depends: libsafec (= ${version}), ${misc:Depends}
 Description: Safe C Library - development files
  The Safe C Library provides secure string and memory functions to
  prevent buffer overflows and other security vulnerabilities.
@@ -29,7 +29,7 @@ Description: Safe C Library - development files
 Package: safec-utils
 Architecture: any
 Section: utils
-Depends: libsafec (= ${binary:Version}), perl, ${shlibs:Depends}, ${misc:Depends}
+Depends: libsafec (= ${version}), perl, ${shlibs:Depends}, ${misc:Depends}
 Description: Safe C Library - API checker utility
  The Safe C Library provides secure string and memory functions to
  prevent buffer overflows and other security vulnerabilities.

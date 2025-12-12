@@ -47,56 +47,10 @@ jobs:
             bash -c '
               set -euo pipefail
               
-              # Install base dependencies
-              export DEBIAN_FRONTEND=noninteractive
-              apt-get update -qq
-              apt-get install -y -qq \
-                git \
-                build-essential \
-                cmake \
-                pkg-config \
-                file \
-                binutils \
-                dpkg-dev \
-                libmsgpack-dev
-              
-              echo "Installing trower-base64 dependencies..."
-              LIBTROWER_BASE64_DEB="libtrower-base64_1.2.7_${{ matrix.platform }}.deb"
-              LIBTROWER_BASE64_DEV_DEB="libtrower-base64-dev_1.2.7_${{ matrix.platform }}.deb"              
-              if [ -f "$LIBTROWER_BASE64_DEB" ] && [ -f "$LIBTROWER_BASE64_DEV_DEB" ]; then
-                dpkg -i "$LIBTROWER_BASE64_DEB" "$LIBTROWER_BASE64_DEV_DEB" || apt-get install -f -y
-              else
-                echo "Downloading trower-base64 from GitHub releases..."
-                curl -sSL "https://github.com/${{ github.repository }}/releases/download/trower-base64-1.2.7/$LIBTROWER_BASE64_DEB" -o "$LIBTROWER_BASE64_DEB" || true
-                curl -sSL "https://github.com/${{ github.repository }}/releases/download/trower-base64-1.2.7/$LIBTROWER_BASE64_DEV_DEB" -o "$LIBTROWER_BASE64_DEV_DEB" || true
-                if [ -f "$LIBTROWER_BASE64_DEB" ] && [ -f "$LIBTROWER_BASE64_DEV_DEB" ]; then
-                  dpkg -i "$LIBTROWER_BASE64_DEB" "$LIBTROWER_BASE64_DEV_DEB" || apt-get install -f -y
-                else
-                  echo "Warning: trower-base64 packages not found"
-                fi
-              fi
-
-              echo "Installing cimplog dependency..."
-              CIMPLOG_DEB="libcimplog_1.0.3_${{ matrix.platform }}.deb"
-              CIMPLOG_DEV_DEB="libcimplog-dev_1.0.3_${{ matrix.platform }}.deb"
-              if [ -f "$CIMPLOG_DEB" ] && [ -f "$CIMPLOG_DEV_DEB" ]; then
-                dpkg -i "$CIMPLOG_DEB" "$CIMPLOG_DEV_DEB" || apt-get install -f -y
-              fi
-
               # Source build helpers
               source scripts/build-helpers/build-common.sh
-              
+              install_build_dependencies wrp-c
+
               # Build package
               build_package wrp-c ${{ matrix.platform }}
             '
-      
-      - name: List generated packages
-        run: |
-          echo "Generated packages:"
-          ls -lh *.deb || echo "No packages found"
-      
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: wrp-c-${{ matrix.platform }}-packages
-          path: '*.deb'

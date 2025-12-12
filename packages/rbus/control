@@ -2,12 +2,12 @@ Source: rbus
 Version: 2.7.0
 Upstream-URL: https://github.com/rdkcentral/rbus.git
 Upstream-Ref: v2.7.0
-Build-Depends: pkg-config, libcurl4-openssl-dev, libmsgpack-dev, libcjson-dev, linenoise
+Build-Depends: libcurl4-openssl-dev, libmsgpack-dev, libcjson-dev, linenoise
 
 Package: rbus
 Section: libs
 Priority: optional
-Depends: linenoise, libc6, libcurl4, libmsgpackc2, libcjson1
+Depends: linenoise, ${shlibs:Depends}, ${misc:Depends}
 Description: RDK Bus messaging system - runtime
  RDK Bus (RBus) is a lightweight, fast and efficient bus messaging system.
  It allows interprocess communication (IPC) and remote procedure call (RPC)

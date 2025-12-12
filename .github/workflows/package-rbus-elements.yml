@@ -48,77 +48,12 @@ jobs:
             ubuntu:20.04 \
             bash -c '
               set -euo pipefail
-              
-              # Install base dependencies
-              export DEBIAN_FRONTEND=noninteractive
-              apt-get update -qq
-              apt-get install -y -qq \
-                git \
-                build-essential \
-                cmake \
-                file \
-                binutils \
-                dpkg-dev \
-                curl
-              
-              # Install dependency packages from GitHub releases or local
-              echo "Installing linenoise dependency..."
-              LINENOISE_DEB="linenoise_1.0_${{ matrix.platform }}.deb"
-              if [ -f "$LINENOISE_DEB" ]; then
-                dpkg -i "$LINENOISE_DEB" || apt-get install -f -y
-              else
-                echo "Downloading linenoise from GitHub releases..."
-                curl -sSL "https://github.com/${{ github.repository }}/releases/download/linenoise-1.0/$LINENOISE_DEB" -o "$LINENOISE_DEB" || true
-                if [ -f "$LINENOISE_DEB" ]; then
-                  dpkg -i "$LINENOISE_DEB" || apt-get install -f -y
-                else
-                  echo "Warning: linenoise package not found"
-                fi
-              fi
-              
-              echo "Installing rbus dependencies..."
-              RBUS_DEB="rbus_2.7.0_${{ matrix.platform }}.deb"
-              LIBRBUS_DEV_DEB="librbus-dev_2.7.0_${{ matrix.platform }}.deb"
-              
-              if [ -f "$RBUS_DEB" ] && [ -f "$LIBRBUS_DEV_DEB" ]; then
-                dpkg -i "$RBUS_DEB" "$LIBRBUS_DEV_DEB" || apt-get install -f -y
-              else
-                echo "Downloading rbus from GitHub releases..."
-                curl -sSL "https://github.com/${{ github.repository }}/releases/download/rbus-2.7.0/$RBUS_DEB" -o "$RBUS_DEB" || true
-                curl -sSL "https://github.com/${{ github.repository }}/releases/download/rbus-2.7.0/$LIBRBUS_DEV_DEB" -o "$LIBRBUS_DEV_DEB" || true
-                if [ -f "$RBUS_DEB" ] && [ -f "$LIBRBUS_DEV_DEB" ]; then
-                  dpkg -i "$RBUS_DEB" "$LIBRBUS_DEV_DEB" || apt-get install -f -y
-                else
-                  echo "Warning: rbus packages not found"
-                fi
-              fi
-              
-              # Parse control file to get build dependencies
-              PROJECT="rbus-elements"
-              CONTROL_FILE="packages/$PROJECT/control"
-              
-              # Extract and install build dependencies
-              if [ -f "$CONTROL_FILE" ]; then
-                BUILD_DEPS=$(grep "^Build-Depends:" "$CONTROL_FILE" | sed "s/^Build-Depends: *//" || echo "")
-                if [ -n "$BUILD_DEPS" ]; then
-                  echo "Installing build dependencies: $BUILD_DEPS"
-                  # Convert comma-separated list to space-separated, remove version constraints and our packages
-                  BUILD_DEPS_CLEAN=$(echo "$BUILD_DEPS" | tr "," "\n" | sed "s/ *(.*)//" | grep -v "^rbus$\|^librbus-dev$\|^linenoise$" | tr "\n" " ")
-                  if [ -n "$BUILD_DEPS_CLEAN" ]; then
-                    apt-get install -y -qq $BUILD_DEPS_CLEAN || true
-                  fi
-                fi
-              fi
-              
+                            
               # Source build helpers
               source scripts/build-helpers/build-common.sh
+              install_build_dependencies rbus-elements
               
               # Build package (with optional upstream ref override)
               UPSTREAM_REF="${{ inputs.upstream_ref }}"
-              build_package "$PROJECT" "${{ matrix.platform }}" "$UPSTREAM_REF"
+              build_package rbus-elements "${{ matrix.platform }}" "$UPSTREAM_REF"
             '
-      
-      - name: List generated packages
-        run: |
-          echo "Generated packages:"
-          ls -lh *.deb || echo "No packages found"

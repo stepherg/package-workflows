@@ -1,88 +1,60 @@
 name: Package safec-common-wrapper
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'packages/safec-common-wrapper/**'
-      - 'scripts/**'
-      - '.github/workflows/package-safec-common-wrapper.yml'
-  pull_request:
-    branches: [ main ]
-    paths:
-      - 'packages/safec-common-wrapper/**'
-      - 'scripts/**'
-      - '.github/workflows/package-safec-common-wrapper.yml'
   workflow_dispatch:
+    inputs:
+      upstream_ref:
+        description: 'Upstream tag/branch/commit to build (overrides control file)'
+        required: false
+        default: ''
+  
+  push:
+    paths:
+      - 'packages/safec-common-wrapper/**'
+      - '.github/workflows/package-safec-common-wrapper.yml'
+      - 'scripts/build-helpers/**'
+
+permissions:
+  contents: write
+  packages: write
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    name: Build safec-common-wrapper
+    name: Build safec-common-wrapper for ${{ matrix.platform }}
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: amd64
+            docker_platform: linux/amd64
+          - platform: arm64
+            docker_platform: linux/arm64
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
+      
+      - name: Set up QEMU for multi-arch builds
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+      
       - name: Build package in Docker
         run: |
-          docker run --rm \
+          docker run --rm --platform=${{ matrix.docker_platform }} \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
-            debian:bookworm \
+            ubuntu:20.04 \
             bash -c '
               set -euo pipefail
+                            
+              # Source build helpers
+              source scripts/build-helpers/build-common.sh
               
-              # Install dependencies
-              export DEBIAN_FRONTEND=noninteractive
-              apt-get update -qq
-              apt-get install -y -qq dpkg-dev
+              # Install build dependencies from control file
+              install_build_dependencies safec-common-wrapper
               
-              # Package metadata
-              PROJECT=safec-common-wrapper
-              VERSION=1.0
-              ARCH=all
-              
-              # Create package structure
-              STAGING_DIR=/tmp/staging-$PROJECT
-              mkdir -p $STAGING_DIR/usr/include
-              mkdir -p $STAGING_DIR/DEBIAN
-              
-              # Install header file
-              cp packages/$PROJECT/files/safec_lib.h $STAGING_DIR/usr/include/
-              
-              # Create control file
-              echo "Package: safec-common-wrapper" > $STAGING_DIR/DEBIAN/control
-              echo "Version: 1.0" >> $STAGING_DIR/DEBIAN/control
-              echo "Section: libdevel" >> $STAGING_DIR/DEBIAN/control
-              echo "Priority: optional" >> $STAGING_DIR/DEBIAN/control
-              echo "Architecture: all" >> $STAGING_DIR/DEBIAN/control
-              echo "Maintainer: Stephen Gregory <stephenrgregory@gmail.com>" >> $STAGING_DIR/DEBIAN/control
-              echo "Description: SafeC wrapper definition header" >> $STAGING_DIR/DEBIAN/control
-              echo " A safec wrapper definition header file providing macros and" >> $STAGING_DIR/DEBIAN/control
-              echo " compatibility layer for SafeC library functions." >> $STAGING_DIR/DEBIAN/control
-              echo " ." >> $STAGING_DIR/DEBIAN/control
-              echo " This is a header-only package that provides compatibility macros" >> $STAGING_DIR/DEBIAN/control
-              echo " for safe string and memory operations." >> $STAGING_DIR/DEBIAN/control
-              
-              # Calculate installed size
-              SIZE=$(du -sk $STAGING_DIR | awk '\''{print $1}'\'')
-              DEBIAN_SIZE=$(du -sk $STAGING_DIR/DEBIAN | awk '\''{print $1}'\'')
-              SIZE=$((SIZE - DEBIAN_SIZE))
-              echo "Installed-Size: $SIZE" >> $STAGING_DIR/DEBIAN/control
-              
-              # Build package
-              dpkg-deb --build $STAGING_DIR ${PROJECT}_${VERSION}_${ARCH}.deb
-              
-              echo "Package created successfully:"
-              ls -lh ${PROJECT}_${VERSION}_${ARCH}.deb
+              # Build package (with optional upstream ref override)
+              build_package "safec-common-wrapper" "${{ matrix.platform }}"
             '
-
-      - name: List generated packages
-        run: ls -lh *.deb
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: safec-common-wrapper-packages
-          path: '*.deb'

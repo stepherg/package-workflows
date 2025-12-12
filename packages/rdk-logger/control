@@ -2,7 +2,7 @@ Source: rdk-logger
 Version: 2.4.0
 Upstream-URL: https://github.com/rdkcentral/rdk_logger.git
 Upstream-Ref: v2.4.0
-Build-Depends: pkg-config, autoconf, automake, libtool, liblog4c-dev
+Build-Depends: liblog4c-dev
 
 Package: librdk-logger
 Section: libs

@@ -2,12 +2,12 @@ Source: cjwt
 Version: 2.3.0
 Upstream-URL: https://github.com/xmidt-org/cjwt.git
 Upstream-Ref: 2586a5ea4594f75fe5958c88acfdd7a7f635a067
-Build-Depends: pkg-config, libssl-dev, libcjson-dev, libtrower-base64
+Build-Depends: libssl-dev, libcjson-dev, libtrower-base64, libtrower-base64-dev
 
 Package: libcjwt
 Section: libs
 Priority: optional
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: libtrower-base64, ${shlibs:Depends}, ${misc:Depends}
 Description: C JWT implementation - runtime
  cjwt is a small JWT handler designed to allow consumers of JWTs of the
  JWS variant the ability to securely and easily get claims and data from

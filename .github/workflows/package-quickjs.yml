@@ -55,57 +55,13 @@ jobs:
             ubuntu:20.04 \
             bash -c '
               set -euo pipefail
-              
-              # Install base dependencies
-              export DEBIAN_FRONTEND=noninteractive
-              apt-get update -qq
-              apt-get install -y -qq \
-                git \
-                build-essential \
-                file \
-                binutils \
-                dpkg-dev
-              
-              # Parse control file to get build dependencies
-              PROJECT="quickjs"
-              CONTROL_FILE="packages/$PROJECT/control"
-              
-              # Extract and install build dependencies
-              if [ -f "$CONTROL_FILE" ]; then
-                BUILD_DEPS=$(grep "^Build-Depends:" "$CONTROL_FILE" | sed "s/^Build-Depends: *//" || echo "")
-                if [ -n "$BUILD_DEPS" ]; then
-                  echo "Installing build dependencies: $BUILD_DEPS"
-                  # Convert comma-separated list to space-separated
-                  BUILD_DEPS_CLEAN=$(echo "$BUILD_DEPS" | tr "," "\n" | sed "s/ *(.*)//" | tr "\n" " ")
-                  apt-get install -y -qq $BUILD_DEPS_CLEAN || true
-                fi
-              fi
-              
+                                          
               # Source build helpers
               source scripts/build-helpers/build-common.sh
+              install_build_dependencies quickjs
               
               # Build package (with optional upstream ref override)
               UPSTREAM_REF="${{ inputs.upstream_ref }}"
-              build_package "$PROJECT" "${{ matrix.platform }}" "$UPSTREAM_REF"
+              build_package quickjs "${{ matrix.platform }}" "$UPSTREAM_REF"
             '
       
-      - name: List generated packages
-        run: |
-          echo "Generated packages:"
-          ls -lh *.deb || echo "No packages found"
-      
-      # - name: Upload packages as artifacts
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: quickjs-${{ matrix.platform }}-deb
-      #     path: '*.deb'
-      #     retention-days: 90
-      #     if-no-files-found: error
-      
-      # Optional: Upload to GitHub release if this is a release build
-      # Uncomment the following step to enable release uploads
-      # - name: Upload to release
-      #   if: github.event_name == 'release'
-      #   uses: softprops/action-gh-release@v1
-      #   with:
-      #     files: '*.deb'

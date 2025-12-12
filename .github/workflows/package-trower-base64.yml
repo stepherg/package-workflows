@@ -47,34 +47,10 @@ jobs:
             bash -c '
               set -euo pipefail
               
-              # Install base dependencies
-              export DEBIAN_FRONTEND=noninteractive
-              apt-get update -qq
-              apt-get install -y -qq \
-                git \
-                build-essential \
-                pkg-config \
-                file \
-                binutils \
-                dpkg-dev \
-                meson \
-                ninja-build \
-                python3-pip
-              
               # Source build helpers
               source scripts/build-helpers/build-common.sh
+              install_build_dependencies trower-base64
               
               # Build package
               build_package trower-base64 ${{ matrix.platform }}
             '
-      
-      - name: List generated packages
-        run: |
-          echo "Generated packages:"
-          ls -lh *.deb || echo "No packages found"
-      
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: trower-base64-${{ matrix.platform }}-packages
-          path: '*.deb'

@@ -6,7 +6,6 @@ After=network.target
 Type=forking
 TimeoutSec=300
 ExecStart=/usr/bin/rtrouted
-#ExecStopPost=/bin/sh -c 'echo 0 > /tmp/rbus_stopped'
 ExecStopPost=/bin/sh -c 'rm -f /tmp/rtrouted*'
 Restart=on-failure
 RestartSec=5

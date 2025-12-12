@@ -28,6 +28,78 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $*" >&2
 }
 
+# Install build dependencies from control file
+# Args: $1 = project name
+install_build_dependencies() {
+    local project=$1
+    local control_file="packages/$project/control"
+    
+    if [ ! -f "$control_file" ]; then
+        log_warning "Control file not found: $control_file"
+        return 0
+    fi
+    
+    export DEBIAN_FRONTEND=noninteractive
+
+    apt-get update -qq
+
+    log_info "Reading build dependencies from control file..."
+    
+    # Extract Build-Depends line
+    local build_deps=$(grep "^Build-Depends:" "$control_file" | sed 's/^Build-Depends: *//' || echo "")
+    
+    if [ -z "$build_deps" ]; then
+        log_info "No build dependencies specified"
+        return 0
+    fi
+    
+    log_info "Build dependencies: $build_deps"
+    
+    # Split into system packages and custom packages
+    local base_system_pkgs="pkg-config git build-essential make autoconf automake libtool cmake file binutils dpkg-dev curl"
+    local system_pkgs=""
+    local custom_pkgs=""
+    
+    # Parse comma-separated dependencies
+    IFS=',' read -ra DEPS <<< "$build_deps"
+    for dep in "${DEPS[@]}"; do
+        # Trim whitespace and remove version constraints
+        dep=$(echo "$dep" | sed 's/^ *//; s/ *$//; s/ *(.*)//')
+        
+        # Check if it's a custom package (check if .deb file exists)
+        if ls ${dep}_*_*.deb 2>/dev/null | grep -q .; then
+            custom_pkgs="$custom_pkgs $dep"
+        else
+            system_pkgs="$system_pkgs $dep"
+        fi
+    done
+
+    system_pkgs="$system_pkgs $base_system_pkgs"
+    
+    # Install system packages
+    if [ -n "$system_pkgs" ]; then
+        log_info "Installing system packages:$system_pkgs"
+        apt-get install -y -qq $system_pkgs || {
+            log_warning "Some system packages failed to install, continuing..."
+        }
+    fi
+    
+    # Install custom packages
+    for pkg in $custom_pkgs; do
+        log_info "Installing custom package: $pkg"
+        # Find matching .deb files for this package
+        local deb_files=$(ls ${pkg}_*_*.deb 2>/dev/null || true)
+        if [ -n "$deb_files" ]; then
+            dpkg -i $deb_files || apt-get install -f -y
+            log_success "Installed $pkg"
+        else
+            log_warning "Custom package $pkg not found, build may fail"
+        fi
+    done
+    
+    log_success "Build dependencies installed"
+}
+
 # Detect the build system used by the upstream project
 # Returns: cmake, make, autotools, meson, or unknown
 detect_build_system() {
@@ -225,8 +297,15 @@ build_autotools() {
         log_info "Running autoreconf to generate configure script..."
         autoreconf -i
     fi
-    
-    ./configure --prefix=/usr
+
+    # Read custom configure options if available
+    local configure_options=""
+    if [ -f "/workspace/packages/$project/configure_options" ]; then
+        configure_options=$(cat "/workspace/packages/$project/configure_options")
+        log_info "Using custom configure options: $configure_options"
+    fi
+
+    ./configure --prefix=/usr $configure_options
     
     make -j$(nproc)
     
@@ -397,6 +476,13 @@ create_single_deb() {
     depends="${depends//\$\{misc:Depends\}/}"
     # Remove ${perl:Depends} template variable
     depends="${depends//\$\{perl:Depends\}/}"
+    
+    # Replace version placeholders in depends
+    # depends="${depends//\$\{version\}/$version}"
+    # depends="${depends//(= \$\{version\})/(= $version)}"
+    # depends="${depends//\$\{binary:Version\}/$version}"
+    # depends="${depends//(= \$\{binary:Version\})/(= $version)}"
+    
     # Clean up any resulting issues: double commas, leading/trailing commas, extra spaces
     depends=$(echo "$depends" | sed 's/,,\+/,/g; s/^[, ]\+//; s/[, ]\+$//; s/  \+/ /g')
     
@@ -889,9 +975,37 @@ build_package() {
         upstream_ref="$upstream_ref_override"
     fi
     
-    # Validate required fields
+    # Check for custom install script (for packages without upstream source)
+    local install_script="packages/$project/install.sh"
+    if [ -f "$install_script" ]; then
+        log_info "Found custom install script, using it instead of upstream build"
+        
+        # Create staging directory
+        export STAGING_DIR="/tmp/staging-$project"
+        mkdir -p "$STAGING_DIR"
+        
+        # Run custom install script
+        bash "$install_script"
+        
+        # Create Debian package
+        create_deb "$project" "$version" "$arch" "$STAGING_DIR"
+        
+        # Move packages to workspace
+        log_info "Moving packages to workspace..."
+        mv -f *.deb /workspace/ 2>/dev/null || true
+        cd /workspace
+        ls -lh *.deb 2>/dev/null || log_warning "No .deb files found"
+        
+        log_success "========================================="
+        log_success "Package build completed successfully!"
+        log_success "========================================="
+        return 0
+    fi
+    
+    # Validate required fields for upstream builds
     if [ -z "$upstream_url" ] || [ -z "$upstream_ref" ] || [ -z "$version" ]; then
         log_error "Missing required fields in control file (Upstream-URL, Upstream-Ref, or Version)"
+        log_error "For packages without upstream source, provide an install.sh script"
         return 1
     fi
     
@@ -909,6 +1023,12 @@ build_package() {
     local buildsys=$(detect_build_system)
     log_info "Detected build system: $buildsys"
     
+    # Source env file if it exists
+    if [ -f "/workspace/packages/$project/env" ]; then
+        log_info "Sourcing env file..."
+        source "/workspace/packages/$project/env"
+    fi
+
     # Build with appropriate adapter
     case "$buildsys" in
         cmake)

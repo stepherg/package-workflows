@@ -47,29 +47,9 @@ jobs:
             bash -c '
               set -euo pipefail
               
-              # Install base dependencies
-              export DEBIAN_FRONTEND=noninteractive
-              apt-get update
-              apt-get install -y \
-                build-essential \
-                git \
-                curl \
-                autoconf \
-                automake \
-                libtool \
-                pkg-config \
-                libssl-dev
-
               # Source build helpers
               source scripts/build-helpers/build-common.sh
 
+              install_build_dependencies nopoll
               build_package nopoll ${{ matrix.platform }}
             '
-
-      - name: Upload packages
-        uses: actions/upload-artifact@v4
-        with:
-          name: nopoll-packages-${{ matrix.platform }}
-          path: |
-            *.deb
-          retention-days: 30

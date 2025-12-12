@@ -46,34 +46,11 @@ jobs:
             debian:bookworm \
             bash -c '
               set -euo pipefail
-              
-              # Install base dependencies
-              export DEBIAN_FRONTEND=noninteractive
-              apt-get update -qq
-              apt-get install -y -qq \
-                git \
-                build-essential \
-                autoconf \
-                automake \
-                libtool \
-                pkg-config \
-                file \
-                binutils \
-                dpkg-dev \
-                perl
-              
+
               # Source build helpers
               source scripts/build-helpers/build-common.sh
+              install_build_dependencies safec
               
               # Build package
               build_package safec ${{ matrix.platform }}
             '
-
-      - name: List generated packages
-        run: ls -lh *.deb
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: safec-${{ matrix.platform }}-packages
-          path: '*.deb'

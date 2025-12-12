@@ -2,7 +2,7 @@ Source: trower-base64
 Version: 1.2.7
 Upstream-URL: https://github.com/Comcast/trower-base64.git
 Upstream-Ref: a6b418afee8bf03a86e35bbc3260880926347279
-Build-Depends: pkg-config, meson, ninja-build
+Build-Depends: meson, ninja-build, python3-pip
 Section: libs
 Priority: optional
 Maintainer: Comcast

@@ -46,33 +46,13 @@ jobs:
             ubuntu:20.04 \
             bash -c '
               set -euo pipefail
-              
-              # Install base dependencies
-              export DEBIAN_FRONTEND=noninteractive
-              apt-get update -qq
-              apt-get install -y -qq \
-                git \
-                build-essential \
-                cmake \
-                pkg-config \
-                file \
-                binutils \
-                dpkg-dev
-              
+                            
               # Source build helpers
               source scripts/build-helpers/build-common.sh
               
+              # Install build dependencies from control file
+              install_build_dependencies cimplog
+
               # Build package
               build_package cimplog ${{ matrix.platform }}
             '
-      
-      - name: List generated packages
-        run: |
-          echo "Generated packages:"
-          ls -lh *.deb || echo "No packages found"
-      
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: cimplog-${{ matrix.platform }}-packages
-          path: '*.deb'

@@ -1,0 +1,15 @@
+export CFLAGS+="-I/usr/include/cjson \
+   -I/usr/include/trower-base64 \
+   -I/usr/include/nopoll \
+   -I/usr/include/wrp-c \
+   -I/usr/include/cimplog \
+   -I/usr/include/nanomsg \
+   -I/usr/include/cjwt \
+   -I/usr/include/rbus \
+   -I/usr/include/rtmessage \
+   -D_GNU_SOURCE \
+   -DNOPOLL_LOGGER \
+   -DBUILD_YOCTO \
+   -DENABLE_WEBCFGBIN \
+   -DWAN_FAILOVER_SUPPORTED \
+   -Wno-error=all -Wno-missing-field-initializers"

@@ -2,7 +2,7 @@ Source: nopoll
 Version: 1.0.4
 Upstream-URL: https://github.com/Comcast/nopoll.git
 Upstream-Ref: 1.0.4
-Build-Depends: autoconf, automake, libtool, libssl-dev
+Build-Depends: libssl-dev
 
 Package: libnopoll
 Section: libs

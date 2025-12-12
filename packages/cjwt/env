@@ -1,0 +1,1 @@
+export CFLAGS=" -I/usr/include/cjson -I/usr/include/trower-base64"

@@ -1,0 +1,10 @@
+export CFLAGS="$(pkg-config --cflags dbus-1) \
+   -I/usr/include \
+   -I/usr/include/safeclib \
+   -I/usr/include/rbus \
+   -I/usr/include/rtmessage \
+   -I/usr/include/trower-base64 \
+   -D_NO_PKI_KB5_SUPPORT \
+   -D_ANSC_USE_OPENSSL_"
+
+export LDFLAGS="$(pkg-config --libs dbus-1)"

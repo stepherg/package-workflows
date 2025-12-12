@@ -48,39 +48,12 @@ jobs:
             ubuntu:20.04 \
             bash -c '
               set -euo pipefail
-              
-              # Install base dependencies
-              export DEBIAN_FRONTEND=noninteractive
-              apt-get update -qq
-              apt-get install -y -qq \
-                git \
-                build-essential \
-                autoconf \
-                automake \
-                libtool \
-                pkg-config \
-                file \
-                binutils \
-                dpkg-dev \
-                liblog4c-dev
-              
+
               # Source build helpers
               source scripts/build-helpers/build-common.sh
+              install_build_dependencies rdk-logger
               
               # Build package (with optional upstream ref override)
               UPSTREAM_REF="${{ inputs.upstream_ref }}"
               build_package "rdk-logger" "${{ matrix.platform }}" "$UPSTREAM_REF"
             '
-      
-      - name: List generated packages
-        run: |
-          echo "Generated packages:"
-          ls -lh *.deb || echo "No packages found"
-      
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: rdk-logger-${{ matrix.platform }}-deb
-          path: |
-            *.deb
-          if-no-files-found: error
