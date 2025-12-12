@@ -7,7 +7,7 @@ Build-Depends: pkg-config, libcurl4-openssl-dev, libmsgpack-dev, libcjson-dev, l
 Package: rbus
 Section: libs
 Priority: optional
-Depends: libc6, libcurl4, libmsgpackc2, libcjson1, linenoise
+Depends: linenoise, libc6, libcurl4, libmsgpackc2, libcjson1
 Description: RDK Bus messaging system - runtime
  RDK Bus (RBus) is a lightweight, fast and efficient bus messaging system.
  It allows interprocess communication (IPC) and remote procedure call (RPC)

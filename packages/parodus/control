@@ -7,7 +7,7 @@ Build-Depends: cmake, pkg-config, libssl-dev, libcurl4-openssl-dev, uuid-dev, li
 Package: parodus
 Section: net
 Priority: optional
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: rbus, libcimplog, libcjwt, libnanomsg, libnopoll, libtrower-base64, libwrp-c, librdk-logger
 Description: XMiDT client coordinator
  parodus is a C implementation of the XMiDT client coordinator. XMiDT
  is a highly scalable, highly available, generic message routing system.

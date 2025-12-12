@@ -1,0 +1,17 @@
+Origin: RDK/XMiDT Packages
+Label: RDK/XMiDT Packages
+Suite: stable
+Codename: stable
+Architectures: arm64
+Components: main
+Description: RDK and XMiDT component packages
+Date: Fri, 12 Dec 2025 08:26:48 +0000
+MD5Sum:
+ e7e69d93f1d014185f7472560da41c3c             4775 main/binary-arm64/Packages.gz
+ 83898c54c93d33252ff221bfe69ae314            14885 main/binary-arm64/Packages
+SHA1:
+ dd35f9871dfe98f3fb9602fd3fd010cb082cc3fc             4775 main/binary-arm64/Packages.gz
+ d1958f8f2541514efa5a4d82aca3025b40814acf            14885 main/binary-arm64/Packages
+SHA256:
+ 3829e82e2d759fdb53fb9cc919fd23080c23975bcbd09da08dec856b5eb894a0             4775 main/binary-arm64/Packages.gz
+ 15f18bafb304ac20d8805c52fb1eec1f8f6828be306b9ad952996e16b134f3b2            14885 main/binary-arm64/Packages

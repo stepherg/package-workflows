@@ -562,6 +562,9 @@ create_package_from_section() {
         local pkg_section=$(sed -n "${start_line},$((next_line-1))p" "$control_file")
     fi
     
+    log_info "Package section for $pkg_name (lines $start_line to ${next_line:-end}):"
+    log_info "$(echo "$pkg_section" | head -10)"
+    
     local description=$(echo "$pkg_section" | grep -A 20 "^Description:" || echo "Description: $pkg_name")
     local depends=$(echo "$pkg_section" | grep "^Depends:" | sed 's/^Depends: *//' || echo "")
     local section=$(echo "$pkg_section" | grep "^Section:" | sed 's/^Section: *//' || echo "misc")
