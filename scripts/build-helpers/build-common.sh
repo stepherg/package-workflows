@@ -567,6 +567,9 @@ create_package_from_section() {
     local section=$(echo "$pkg_section" | grep "^Section:" | sed 's/^Section: *//' || echo "misc")
     local priority=$(echo "$pkg_section" | grep "^Priority:" | sed 's/^Priority: *//' || echo "optional")
     
+    log_info "Creating package: $pkg_name"
+    log_info "  Original Depends: $depends"
+    
     # Detect additional dependencies for this package
     local auto_depends=$(detect_dependencies "$project" "$pkg_dir")
     
@@ -581,6 +584,8 @@ create_package_from_section() {
     
     # Remove ${misc:Depends} template variable (not used in simple packaging)
     depends="${depends//\$\{misc:Depends\}/}"
+    # Remove ${perl:Depends} template variable
+    depends="${depends//\$\{perl:Depends\}/}"
     
     # Replace version placeholder in depends
     depends="${depends//\$\{version\}/$version}"
@@ -588,6 +593,8 @@ create_package_from_section() {
     
     # Clean up any resulting issues: double commas, leading/trailing commas, extra spaces
     depends=$(echo "$depends" | sed 's/,,\+/,/g; s/^[, ]\+//; s/[, ]\+$//; s/  \+/ /g')
+    
+    log_info "  Final Depends: $depends"
     
     # Generate control file
     cat > "$pkg_dir/DEBIAN/control" << EOF
