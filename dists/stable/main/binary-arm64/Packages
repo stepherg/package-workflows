@@ -41,10 +41,10 @@ Architecture: arm64
 Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 28
 Filename: pool/main/l/libcimplog/libcimplog_1.0.3_arm64.deb
-Size: 5576
-MD5sum: d0ff34ec89ac27249726e51477e6cb62
-SHA1: 51f89d186fef66ecc97202e7b433a3ad1242da9a
-SHA256: 568d2001fc8b17ff1eecb38a7b7f2c52c31b9a1ebc4924492769c0cbf91ef927
+Size: 5572
+MD5sum: 026730512b69807b80023b2a957cf4f3
+SHA1: d38066e38304748befb099b9ef0edca54b6e1fe9
+SHA256: d96c4345dee7b1f7c0d55ec08ed6448ba2a7f22d4a0e5c7fc4ad5bbfb12a2ca9
 Section: libs
 Priority: optional
 Description: Simple logging library - runtime
@@ -62,10 +62,10 @@ Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 40
 Depends: libcimplog (= 1.0.3)
 Filename: pool/main/l/libcimplog-dev/libcimplog-dev_1.0.3_arm64.deb
-Size: 5520
-MD5sum: a066c06acd64bb19e6b2d80c3994c356
-SHA1: 59ce8a4ed29f8166cf2c0837f01b3faf8703be1e
-SHA256: 3c12eee2e8d9f3b49c74e44c478af24dccdcfe80e9c0dd8f5870c88cd86c5931
+Size: 5532
+MD5sum: 4618a1d798ad18726b843c0087c5b68b
+SHA1: 5e4c83aba8e1e56f21fb30427230f033023ea90b
+SHA256: 4982c11d1c11e30b10d73803c097822ade301e32ed2f8f34be02da80a17a78d6
 Section: libdevel
 Priority: optional
 Description: Simple logging library - development files
@@ -125,10 +125,10 @@ Architecture: arm64
 Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 1520
 Filename: pool/main/l/libnanomsg/libnanomsg_1.2.2_arm64.deb
-Size: 336536
-MD5sum: cad8f58a3d0fff10e7f5f9b7cd11d4f8
-SHA1: 96ce1ca9c072177f5d61baff2b1b7b32097a2185
-SHA256: 8119f65dc77012ccf1e9484df15fdfca7a25445687097a87d7f2196d2c107b0c
+Size: 336476
+MD5sum: 533548683a04e0b19ff70f00f05c37ec
+SHA1: 2a57d0a1a5b3b06d1ae5063a57f668627d32d5a0
+SHA256: 2edcaf001dca77b95a37d85b37db7983eeda730dfa39adc4f62ea0ab05620092
 Section: libs
 Priority: optional
 Description: High-performance implementation of scalability protocols - runtime
@@ -150,10 +150,10 @@ Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 76
 Depends: libnanomsg (= 1.2.2)
 Filename: pool/main/l/libnanomsg-dev/libnanomsg-dev_1.2.2_arm64.deb
-Size: 5608
-MD5sum: e6a6afb51229ec1be3bc0d076c72ca89
-SHA1: 0bf586f1687eb8c32ca1c47a90a08a0adc0f8d17
-SHA256: f0fe7d6eb08935fb7276c8384052223ffe97f6ffb763a37a84ad2ea97c903563
+Size: 5612
+MD5sum: 811c8becd80c61d024cde7f225d5c339
+SHA1: c53d58c10eba2660c393142b79a67ebae8d5592f
+SHA256: 40b184cf52f0acdbe804955476dcb6d56533d59b1435b6d67d52413e89d64b15
 Section: libdevel
 Priority: optional
 Description: High-performance implementation of scalability protocols - development
@@ -464,10 +464,10 @@ Architecture: arm64
 Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 100
 Filename: pool/main/l/linenoise/linenoise_1.0_arm64.deb
-Size: 27148
-MD5sum: 2b92da11d9d6d847b3817aad58eabfe2
-SHA1: 40f1b9359da507162ef4c89c75dfd42503589e81
-SHA256: ec2679ef453312160c1a6f8aeb31672cfacdaaa1355fb33c3071700a548963a6
+Size: 27164
+MD5sum: 562246fbe6e709291fac149eb9715d83
+SHA1: 75362758ca9f25a864260ba5912d6b68dd5fd3f9
+SHA256: 5b6a40d05d1d0cd0b7260f610bd455371641e16ee546f81b18e2688ef01a8d01
 Section: misc
 Priority: optional
 Description: Minimal line editing library
@@ -482,10 +482,10 @@ Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 664
 Depends: rbus, libcimplog, libcjwt, libnanomsg, libnopoll, libtrower-base64, libwrp-c, librdk-logger
 Filename: pool/main/p/parodus/parodus_2.10.0_arm64.deb
-Size: 179228
-MD5sum: 2788e66d8f1cf0f499190a4fae726b73
-SHA1: 5100d423cf729b66ae9dcef358ee7068b87d534c
-SHA256: 4fc54244af7fc21d24b5f15827cd061e3e775831fce10041a27f8ba00f89df17
+Size: 181376
+MD5sum: c87658794017d59ef49fb464c6c6b6af
+SHA1: 91330fb8e4abea5f95fc950ab33e3ec284d1977b
+SHA256: c98db6d51b147d8196ba97688cb10996c4a7575d905c712a430e7fb41c2644af
 Section: misc
 Priority: optional
 Description: XMiDT client coordinator
@@ -678,10 +678,10 @@ Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 1380
 Depends: libwebconfig-framework, librdk-logger, rbus, libsyswrapper
 Filename: pool/main/t/telemetry/telemetry_1.7.3_arm64.deb
-Size: 354492
-MD5sum: fb300c356112250b306d4acacaf20e1b
-SHA1: cf683dcc3458185c0607def04bc02961d048d941
-SHA256: 4f98312df276c270c579f2ac792fa27e5630712ad554067aacdedb5440a08e84
+Size: 355404
+MD5sum: 1af1888e1fcfa136fb219252088590c8
+SHA1: f89621ce29cb951b610e02b8005a79a0d3dc694c
+SHA256: 4a2544d4a06c1789962f7477562b25f08b6150bb4ad60a71f14c68154e3ed1a5
 Section: misc
 Priority: optional
 Description: RDK Telemetry 2.0 framework
@@ -695,10 +695,10 @@ Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 332
 Depends: telemetry (= 1.7.3)
 Filename: pool/main/t/telemetry-dev/telemetry-dev_1.7.3_arm64.deb
-Size: 61840
-MD5sum: 3f0c43f6dc7497bdd72d37957a5f0dc5
-SHA1: 9496084acab1916aef9ad3a306fc8c2cd9a7a9a9
-SHA256: 53c6e401dbd50198ec26ed25c3a7676f62c44f7d3916a3aa7e86b57edd886856
+Size: 62224
+MD5sum: e07da93b3e65d9b450d99bb2eb00134f
+SHA1: 1f8ad98b19cdc2208a4aee4ba77fe28f3f791f13
+SHA256: 363a53a1b3f846b6b3c49fa2930cdd24ff9c027da7b1867753bfaa7f8932c577
 Section: misc
 Priority: optional
 Description: Development files for Telemetry 2.0
@@ -709,11 +709,12 @@ Version: 1.4.0
 Architecture: arm64
 Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 140
+Depends: libsafec
 Filename: pool/main/u/utopia/utopia_1.4.0_arm64.deb
-Size: 22696
-MD5sum: 90713425a7f121a8b7b524b19a99adc0
-SHA1: 56b064143c015204a2946d38e79f0e359b6d4e9f
-SHA256: bddc9c3a359cb3850ba87eb0d7fed178ef5b3e91c02bbb11e0dff19c7761ffc2
+Size: 32800
+MD5sum: 2ab23107d797c9135c06aeb5f5b52baf
+SHA1: 0483209df00fcef5f9a73753d27690da1adcac2d
+SHA256: e28b301cbef86a3af144cfa5c1b2efce10b34f44e2c3df26e0c0bda4cf0ed2a8
 Section: misc
 Priority: optional
 Description: RDK-B Utopia service framework
