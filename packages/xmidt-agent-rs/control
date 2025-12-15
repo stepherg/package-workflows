@@ -1,0 +1,19 @@
+Source: xmidt-agent-rs
+Version: 0.2.0
+Upstream-URL: git@github.com:rdk-gdcs/xmidt-agent-rs.git
+Upstream-Ref: v0.2.0
+Build-Depends: cargo, rustc, pkg-config
+
+Package: xmidt-agent-rs
+Section: net
+Priority: optional
+Architecture: any
+Maintainer: Package Workflows <packages@example.com>
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: An xMiDT agent implementation in Rust
+ xmidt-agent-rs is a Rust implementation of an xMiDT agent that
+ connects to the XMiDT cloud infrastructure for device management
+ and communication.
+ .
+ This package provides the xmidt-agent-rs binary for running
+ the agent on devices.

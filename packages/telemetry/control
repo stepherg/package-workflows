@@ -1,0 +1,18 @@
+Source: telemetry
+Version: 1.7.3
+Upstream-URL: https://github.com/rdkcentral/telemetry.git
+Upstream-Ref: 1.7.3
+Build-Depends: libglib2.0-dev, libmsgpack-dev, libcjson-dev, libcurl4-openssl-dev, liblog4c3, linenoise, rbus, librbus-dev, librdk-logger, librdk-logger-dev, libsyswrapper, libsyswrapper-dev, libwebconfig-framework, libwebconfig-framework-dev
+
+Package: telemetry
+Architecture: any
+Depends: psmisc, libwebconfig-framework, librdk-logger, rbus, libsyswrapper, ${shlibs:Depends}, ${misc:Depends}
+Description: RDK Telemetry 2.0 framework
+ Telemetry 2.0 is a framework for collecting and reporting device metrics
+ and diagnostics data. Part of the RDK (Reference Design Kit) framework.
+
+Package: telemetry-dev
+Architecture: any
+Depends: telemetry (= ${version}), ${misc:Depends}
+Description: Development files for Telemetry 2.0
+ Development files (headers) for the Telemetry 2.0 framework.

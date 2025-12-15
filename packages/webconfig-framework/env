@@ -1,0 +1,7 @@
+export CFLAGS+="-I/usr/include/cjson \
+   -I/usr/include/rbus \
+   -I/usr/include/rtmessage"
+
+export LDFLAGS+="-lrbuscore \
+	-lrtMessage \
+	-lrbus"

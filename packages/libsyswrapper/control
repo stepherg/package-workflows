@@ -1,0 +1,18 @@
+Source: libsyswrapper
+Version: 1.0.0
+Upstream-URL: https://github.com/rdkcentral/libSyscallWrapper
+Upstream-Ref: IMPORT_INITIAL_develop
+Build-Depends: liblog4c3, librdk-logger, librdk-logger-dev
+
+Package: libsyswrapper
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Secure wrapper for system calls
+ Secure wrapper library for system calls with privilege management support.
+ Part of the RDK (Reference Design Kit) framework.
+
+Package: libsyswrapper-dev
+Architecture: any
+Depends: libsyswrapper (= ${version}), ${misc:Depends}
+Description: Development files for libSyscallWrapper
+ Development files (headers) for the secure system call wrapper library.

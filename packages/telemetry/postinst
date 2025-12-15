@@ -1,0 +1,31 @@
+#!/bin/bash
+set -e
+
+case "$1" in
+    configure)
+        # Reload systemd daemon
+        if [ -d /run/systemd/system ]; then
+            systemctl daemon-reload >/dev/null 2>&1 || true
+            
+            # Enable and start the service
+            if ! systemctl is-enabled telemetry2_0.service >/dev/null 2>&1; then
+                systemctl enable telemetry2_0.service >/dev/null 2>&1 || true
+            fi
+            
+            # Start the service if not running
+            if ! systemctl is-active telemetry2_0.service >/dev/null 2>&1; then
+                systemctl start telemetry2_0.service >/dev/null 2>&1 || true
+            fi
+        fi
+        ;;
+    
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+    
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+        ;;
+esac
+
+exit 0

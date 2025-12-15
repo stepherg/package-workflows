@@ -1,0 +1,18 @@
+Source: webconfig-framework
+Version: 1.1.0
+Upstream-URL: https://github.com/rdkcentral/webconfigframework
+Upstream-Ref: 1.1.0
+Build-Depends: linenoise, rbus, librbus-dev, zlib1g-dev
+
+Package: libwebconfig-framework
+Architecture: any
+Depends: rbus ${shlibs:Depends}, ${misc:Depends}
+Description: WebConfig framework library for RDK components
+ Independent library that can be linked by other RDK components to
+ register and receive the blob of information from webconfig.
+
+Package: libwebconfig-framework-dev
+Architecture: any
+Depends: libwebconfig-framework (= ${version}), ${misc:Depends}
+Description: Development files for WebConfig framework
+ Development files (headers) for the WebConfig framework library.

@@ -84,6 +84,15 @@ install_build_dependencies() {
         }
     fi
     
+    # Install latest Rust if cargo is in the dependencies
+    if echo "$build_deps" | grep -qE '(^|,)\s*(cargo|rustc)(\s|,|$)'; then
+        log_info "Installing latest Rust via rustup"
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        echo -e "[net]\ngit-fetch-with-cli = true" > /root/.cargo/config.toml
+        export PATH="/root/.cargo/bin:$PATH"
+        log_success "Rust installed: $(rustc --version)"
+    fi
+    
     # Install custom packages
     for pkg in $custom_pkgs; do
         log_info "Installing custom package: $pkg"
@@ -101,9 +110,11 @@ install_build_dependencies() {
 }
 
 # Detect the build system used by the upstream project
-# Returns: cmake, make, autotools, meson, or unknown
+# Returns: cmake, make, autotools, meson, cargo, or unknown
 detect_build_system() {
-    if [ -f "CMakeLists.txt" ]; then
+    if [ -f "Cargo.toml" ]; then
+        echo "cargo"
+    elif [ -f "CMakeLists.txt" ]; then
         echo "cmake"
     elif [ -f "meson.build" ]; then
         echo "meson"
@@ -348,6 +359,35 @@ build_meson() {
     fi
 }
 
+# Build using Cargo (Rust)
+# Args: $1 = project name, $2 = architecture
+build_cargo() {
+    local project=$1
+    local arch=$2
+    
+    log_info "Building with Cargo (Rust)..."
+    
+    # Build in release mode
+    cargo build --release
+    
+    log_success "Cargo build completed"
+    
+    # Install to staging directory
+    local staging_dir="/tmp/staging-$project"
+    mkdir -p "$staging_dir/usr/bin"
+    
+    # Copy the binary from target/release/
+    local binary_name=$(grep -E "^name\s*=" Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+    if [ -f "target/release/$binary_name" ]; then
+        cp "target/release/$binary_name" "$staging_dir/usr/bin/"
+        chmod 755 "$staging_dir/usr/bin/$binary_name"
+        log_success "Installed binary: $binary_name"
+    else
+        log_error "Binary not found: target/release/$binary_name"
+        return 1
+    fi
+}
+
 # Detect runtime dependencies using dpkg-shlibdeps
 # Args: $1 = project name, $2 = staging directory
 detect_dependencies() {
@@ -523,10 +563,35 @@ EOF
     done
     
     # Install systemd service files if they exist
-    if [ -f "packages/$project/${project}.service" ]; then
-        log_info "Installing systemd service file"
+    if ls packages/$project/*.service 1> /dev/null 2>&1; then
+        log_info "Installing systemd service file(s)"
         mkdir -p "$pkg_dir/lib/systemd/system"
-        cp "packages/$project/${project}.service" "$pkg_dir/lib/systemd/system/"
+        cp packages/$project/*.service "$pkg_dir/lib/systemd/system/"
+    fi
+    
+    # Process install file if it exists
+    if [ -f "packages/$project/install" ]; then
+        log_info "Processing install file"
+        while IFS= read -r line || [ -n "$line" ]; do
+            # Skip empty lines and comments
+            [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+            
+            # Parse the line: source_file destination_path
+            local dest_path="$line"
+            local source_file=$(basename "$dest_path")
+            
+            # Check if source file exists in package directory
+            if [ -f "packages/$project/$source_file" ]; then
+                local full_dest="$pkg_dir/$dest_path"
+                local dest_dir=$(dirname "$full_dest")
+                
+                log_info "Installing $source_file to /$dest_path"
+                mkdir -p "$dest_dir"
+                cp "packages/$project/$source_file" "$full_dest"
+            else
+                log_warning "Source file not found: packages/$project/$source_file"
+            fi
+        done < "packages/$project/install"
     fi
     
     # Build the package
@@ -723,6 +788,32 @@ EOF
             mkdir -p "$pkg_dir/lib/systemd/system"
             cp "packages/$project/${project}.service" "$pkg_dir/lib/systemd/system/"
         fi
+    fi
+    
+    # Process install file if it exists
+    # Only install for main package (not -dev, -dbg, or -dbgsrc packages)
+    if [[ ! "$pkg_name" =~ -(dev|dbg|dbgsrc)$ ]] && [ -f "packages/$project/install" ]; then
+        log_info "Processing install file for $pkg_name"
+        while IFS= read -r line || [ -n "$line" ]; do
+            # Skip empty lines and comments
+            [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+            
+            # Parse the line: destination_path
+            local dest_path="$line"
+            local source_file=$(basename "$dest_path")
+            
+            # Check if source file exists in package directory
+            if [ -f "packages/$project/$source_file" ]; then
+                local full_dest="$pkg_dir/$dest_path"
+                local dest_dir=$(dirname "$full_dest")
+                
+                log_info "Installing $source_file to /$dest_path"
+                mkdir -p "$dest_dir"
+                cp "packages/$project/$source_file" "$full_dest"
+            else
+                log_warning "Source file not found: packages/$project/$source_file"
+            fi
+        done < "packages/$project/install"
     fi
     
     # Build the package
@@ -1043,6 +1134,9 @@ build_package() {
         meson)
             build_meson "$project" "$arch"
             ;;
+        cargo)
+            build_cargo "$project" "$arch"
+            ;;
         *)
             log_error "Unknown or unsupported build system"
             return 1
@@ -1068,5 +1162,5 @@ build_package() {
 # Export functions for use in workflows
 export -f log_info log_success log_warning log_error
 export -f detect_build_system clone_upstream apply_patches
-export -f build_cmake build_make build_autotools build_meson
+export -f build_cmake build_make build_autotools build_meson build_cargo
 export -f detect_dependencies create_deb build_package

@@ -1,0 +1,115 @@
+diff --git a/configure.ac b/configure.ac
+index 2b2e6e0..18c76c3 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -229,51 +229,12 @@ AM_CONDITIONAL([ENABLE_HOTSPOT_SERVICE], [test x$enable_hotspot = xtrue])
+ AC_CONFIG_FILES(
+ 	Makefile
+ 	source/Makefile
+-	source/dhcpproxy/Makefile
+-	source/firewall/Makefile
+-	source/firewall_log/Makefile
+-	source/igd/Makefile
+-	source/igd/src/Makefile
+-	source/macclone/Makefile
+-	source/newhost/Makefile
+-	source/pal/Makefile
+-	source/pmon/Makefile
+-	source/scripts/Makefile
+-	source/scripts/init/Makefile
+-	source/scripts/init/c_registration/Makefile
+-	source/scripts/init/src/Makefile
+-	source/scripts/init/src/apply_system_defaults/Makefile
+-        source/scripts/init/src/apply_system_defaults_psm/Makefile
+-	source/scripts/init/src/execute_dir/Makefile
+-	source/services/Makefile
+-	source/services/lib/Makefile
+-	source/service_ipv6/Makefile
+-	source/service_multinet/Makefile
+-	source/service_routed/Makefile
+-	source/service_udhcpc/Makefile
+-	source/service_wan/Makefile
+ 	source/syscfg/Makefile
+ 	source/syscfg/cmd/Makefile
+ 	source/syscfg/lib/Makefile
+-	source/sysevent/Makefile
+-	source/sysevent/control/Makefile
+-	source/sysevent/fork_helper/Makefile
+-	source/sysevent/lib/Makefile
+-	source/sysevent/proxy/Makefile
+-	source/sysevent/server/Makefile
+-	source/trigger/Makefile
+ 	source/ulog/Makefile
+-	source/utapi/Makefile
+-	source/utapi/cmd/Makefile
+-	source/utapi/lib/Makefile
+-	source/utctx/Makefile
+-	source/utctx/bin/Makefile
+-	source/utctx/lib/Makefile
+ 	source/util/Makefile
+ 	source/util/print_uptime/Makefile
+-	source/util/rpc/Makefile
+-	source/util/rpc/client/Makefile
+-	source/util/rpc/server/Makefile
+ 	source/util/utils/Makefile
+ )
+ AC_SUBST(UNIT_TEST_DOCKER_SUPPORT)
+diff --git a/source/Makefile.am b/source/Makefile.am
+index 2f4e39b..0aa0ac4 100644
+--- a/source/Makefile.am
++++ b/source/Makefile.am
+@@ -16,31 +16,4 @@
+ # See the License for the specific language governing permissions and
+ # limitations under the License.
+ ##########################################################################
+-SUBDIRS = ulog syscfg sysevent services utctx utapi util firewall firewall_log newhost macclone pal pmon services service_wan trigger igd service_routed service_ipv6 scripts service_multinet service_udhcpc
+-
+-#SUBDIRS += dhcpproxy
+-
+-if DSLITE_FEATURE_SUPPORT
+-SUBDIRS += service_dslite
+-endif
+-
+-if UNIT_TEST_DOCKER_SUPPORT
+-SUBDIRS += test
+-endif
+-
+-if CORE_NET_LIB_FEATURE_SUPPORT
+-SUBDIRS += service_dhcp
+-SUBDIRS += service_dhcpv6_client
+-endif
+-
+-if FEATURE_RDKB_EXTENDER
+-SUBDIRS += service_deviceMode
+-endif
+-
+-#if FEATURE_RDKB_WANFAILOVER
+-#SUBDIRS += NetworkMonitor
+-#endif
+-
+-if DDNS_BINARY_CLIENT_SUPPORT
+-SUBDIRS += service_ddns
+-endif
++SUBDIRS = ulog syscfg util
+diff --git a/source/util/Makefile.am b/source/util/Makefile.am
+index 6810e38..dcab564 100644
+--- a/source/util/Makefile.am
++++ b/source/util/Makefile.am
+@@ -16,4 +16,4 @@
+ # See the License for the specific language governing permissions and
+ # limitations under the License.
+ ##########################################################################
+-SUBDIRS = rpc utils print_uptime
++SUBDIRS = utils print_uptime
+diff --git a/source/util/print_uptime/Makefile.am b/source/util/print_uptime/Makefile.am
+index 94ea660..9902fa9 100644
+--- a/source/util/print_uptime/Makefile.am
++++ b/source/util/print_uptime/Makefile.am
+@@ -27,6 +27,6 @@ libprint_uptime_la_LDFLAGS = -ltelemetry_msgsender
+ 
+ bin_PROGRAMS = print_uptime
+ 
+-print_uptime_CPPFLAGS = -I$(top_srcdir)/source/include -I$(top_srcdir)/source/util/print_uptime -I${PKG_CONFIG_SYSROOT_DIR}$(includedir)/dbus-1.0 ${PKG_CONFIG_SYSROOT_DIR}$(libdir)/dbus-1.0/include
++print_uptime_CPPFLAGS = -I$(top_srcdir)/source/include -I$(top_srcdir)/source/util/print_uptime -I${PKG_CONFIG_SYSROOT_DIR}$(includedir)/dbus-1.0 -I${PKG_CONFIG_SYSROOT_DIR}$(libdir)/dbus-1.0/include
+ print_uptime_SOURCES = main.c
+ print_uptime_LDADD = libprint_uptime.la

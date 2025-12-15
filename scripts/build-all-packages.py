@@ -199,13 +199,16 @@ def build_package(package_name: str, workflow_file: Path, platform: str, docker_
     Returns True on success, False on failure.
     """
     package_log = f"/tmp/build-{package_name}.log"
-    
+
     # Use gtimeout on macOS, timeout on Linux
     timeout_cmd = "gtimeout" if sys.platform == "darwin" else "timeout"
-    
+
     # Get the absolute path to the repository root (.github/workflows -> .github -> repo_root)
     repo_root = str(workflow_file.parent.parent.parent.resolve())
-    
+
+    # Get user's home directory for SSH and git config
+    home_dir = str(Path.home())
+
     # Build the Docker command directly (bypassing act)
     bash_script = (
         "set -euo pipefail && "
@@ -213,21 +216,23 @@ def build_package(package_name: str, workflow_file: Path, platform: str, docker_
         f"install_build_dependencies {package_name} && "
         f"build_package {package_name} {platform}"
     )
-    
+
     cmd = [
         timeout_cmd, str(timeout_seconds),
         "docker", "run",
         "--rm",
         f"--platform={docker_platform}",
         "-v", f"{repo_root}:/workspace",
+        "-v", f"{home_dir}/.ssh:/root/.ssh:ro",
+        "-v", f"{home_dir}/.gitconfig:/root/.gitconfig:ro",
         "-w", "/workspace",
         "ubuntu:20.04",
         "bash", "-c", bash_script
     ]
-    
+
     # Debug: print the command
     log_info(f"  Running: {' '.join(cmd)}")
-    
+
     try:
         if output_file:
             # If output_file is specified, redirect to it with headers
@@ -236,7 +241,7 @@ def build_package(package_name: str, workflow_file: Path, platform: str, docker_
                 log.write(f"\n{'=' * 80}\n")
                 log.write(f"Building package: {package_name}\n")
                 log.write(f"{'=' * 80}\n\n")
-                
+
                 result = subprocess.run(
                     cmd,
                     stdout=log,
@@ -254,15 +259,15 @@ def build_package(package_name: str, workflow_file: Path, platform: str, docker_
                     text=True,
                     bufsize=1
                 )
-                
+
                 # Stream output to both stdout and log file
                 for line in process.stdout:
                     print(line, end='')
                     log.write(line)
-                
+
                 process.wait()
                 result = process
-        
+
         if result.returncode == 0:
             return True
         elif result.returncode in (124, 143):  # timeout
