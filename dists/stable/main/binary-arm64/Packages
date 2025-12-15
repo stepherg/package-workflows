@@ -4,10 +4,10 @@ Architecture: arm64
 Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 3844
 Filename: pool/main/l/libccsp-common/libccsp-common_1.3.0_arm64.deb
-Size: 701344
-MD5sum: 85a7e96c0ce27fca7fec7f1b3e9e0a90
-SHA1: 7ebcee3e1887bc3d8ecfc134c3f0078f87f0af37
-SHA256: c7bd0425567350f7945e694fdbbf21d0537413afed8b65ffbf6400707ea83075
+Size: 700160
+MD5sum: b03fd6b22b6e0f364fd5a2d6b3ba8206
+SHA1: b2884fd73b7be4948c38196424d59c36b164fca1
+SHA256: 7caa41efb925acfb4e81849b7032a39a787c0ae3e000ae5666b8beca9359d514
 Section: misc
 Priority: optional
 Description: CCSP Common Library
@@ -21,13 +21,13 @@ Package: libccsp-common-dev
 Version: 1.3.0
 Architecture: arm64
 Maintainer: Package Workflows <packages@example.com>
-Installed-Size: 8044
+Installed-Size: 9092
 Depends: libccsp-common (= 1.3.0)
 Filename: pool/main/l/libccsp-common-dev/libccsp-common-dev_1.3.0_arm64.deb
-Size: 477476
-MD5sum: f4a87e27467c55433a34b2d9c8fb1a5a
-SHA1: 82ab1a628cc2a8cbbbb7908dc845d6e6d3936143
-SHA256: f3965a1333eedb519ccb5ebf72bae7af2b94132b8eb3de6ad5ddaaf7c75ab5e1
+Size: 520276
+MD5sum: ba2f73b0bf5d9e701b9883a11d461ae5
+SHA1: 895e6663a6cfae4ec68ff9c1392e3de0e0fa593b
+SHA256: e3a9d2da1c92bdf449ac30a17c82768d8dd8ea424a4c97de0fe2517d8624af46
 Section: libdevel
 Priority: optional
 Description: CCSP Common Library - development files
@@ -315,6 +315,38 @@ Description: Safe C Library - development files
  .
  This package contains the header files and static library.
 
+Package: libsyswrapper
+Version: 1.0.0
+Architecture: arm64
+Maintainer: Package Workflows <packages@example.com>
+Installed-Size: 80
+Filename: pool/main/l/libsyswrapper/libsyswrapper_1.0.0_arm64.deb
+Size: 23120
+MD5sum: 5384615e116af49f56fe139ccef7e968
+SHA1: 10bd370cff396764ec17107cd4c63a9981865c1c
+SHA256: a60a6c3aa863f6e26a797fc9100fb8c4e34e4d1227d952860c1b578e10bc0814
+Section: misc
+Priority: optional
+Description: Secure wrapper for system calls
+ Secure wrapper library for system calls with privilege management support.
+ Part of the RDK (Reference Design Kit) framework.
+
+Package: libsyswrapper-dev
+Version: 1.0.0
+Architecture: arm64
+Maintainer: Package Workflows <packages@example.com>
+Installed-Size: 116
+Depends: libsyswrapper (= 1.0.0)
+Filename: pool/main/l/libsyswrapper-dev/libsyswrapper-dev_1.0.0_arm64.deb
+Size: 24884
+MD5sum: c90c6861be95d640f5e46d8452eada57
+SHA1: 499a836f3ba49985b0244bc51deb524e804042eb
+SHA256: 0cfe81e87ba256b31222f06c654b8317da712508eaf330798471e0b0f140022a
+Section: misc
+Priority: optional
+Description: Development files for libSyscallWrapper
+ Development files (headers) for the secure system call wrapper library.
+
 Package: libtrower-base64
 Version: 1.2.7
 Architecture: arm64
@@ -349,6 +381,39 @@ Description: Base64 encode/decode library - development files
  C implementation of base64 encode/decode.
  .
  This package contains the development headers and static libraries.
+
+Package: libwebconfig-framework
+Version: 1.1.0
+Architecture: arm64
+Maintainer: Package Workflows <packages@example.com>
+Installed-Size: 92
+Depends: rbus
+Filename: pool/main/l/libwebconfig-framework/libwebconfig-framework_1.1.0_arm64.deb
+Size: 20128
+MD5sum: c5269fe507cf2f2187553b45f768606c
+SHA1: 8b265ec7312e1fc9db9432c909d6cc51bf33b725
+SHA256: dc7639a9b7442ea6984496295edf6147584f4da8d15d4fa58052f778874d703d
+Section: misc
+Priority: optional
+Description: WebConfig framework library for RDK components
+ Independent library that can be linked by other RDK components to
+ register and receive the blob of information from webconfig.
+
+Package: libwebconfig-framework-dev
+Version: 1.1.0
+Architecture: arm64
+Maintainer: Package Workflows <packages@example.com>
+Installed-Size: 156
+Depends: libwebconfig-framework (= 1.1.0)
+Filename: pool/main/l/libwebconfig-framework-dev/libwebconfig-framework-dev_1.1.0_arm64.deb
+Size: 21596
+MD5sum: e22d7e529a90c87a645bdeeac426a454
+SHA1: 2b7315da613df99cead15d2781072fe35fb0641b
+SHA256: 8310aeffc1faf98ba4487d021293abde04c37f49e502ea28d65af7602acd1aa6
+Section: misc
+Priority: optional
+Description: Development files for WebConfig framework
+ Development files (headers) for the WebConfig framework library.
 
 Package: libwrp-c
 Version: 1.1.3
@@ -605,4 +670,74 @@ Description: Safe C Library - API checker utility
  prevent buffer overflows and other security vulnerabilities.
  .
  This package contains the check_for_unsafe_apis utility.
+
+Package: telemetry
+Version: 1.7.3
+Architecture: arm64
+Maintainer: Package Workflows <packages@example.com>
+Installed-Size: 1380
+Depends: libwebconfig-framework, librdk-logger, rbus, libsyswrapper
+Filename: pool/main/t/telemetry/telemetry_1.7.3_arm64.deb
+Size: 354492
+MD5sum: fb300c356112250b306d4acacaf20e1b
+SHA1: cf683dcc3458185c0607def04bc02961d048d941
+SHA256: 4f98312df276c270c579f2ac792fa27e5630712ad554067aacdedb5440a08e84
+Section: misc
+Priority: optional
+Description: RDK Telemetry 2.0 framework
+ Telemetry 2.0 is a framework for collecting and reporting device metrics
+ and diagnostics data. Part of the RDK (Reference Design Kit) framework.
+
+Package: telemetry-dev
+Version: 1.7.3
+Architecture: arm64
+Maintainer: Package Workflows <packages@example.com>
+Installed-Size: 332
+Depends: telemetry (= 1.7.3)
+Filename: pool/main/t/telemetry-dev/telemetry-dev_1.7.3_arm64.deb
+Size: 61840
+MD5sum: 3f0c43f6dc7497bdd72d37957a5f0dc5
+SHA1: 9496084acab1916aef9ad3a306fc8c2cd9a7a9a9
+SHA256: 53c6e401dbd50198ec26ed25c3a7676f62c44f7d3916a3aa7e86b57edd886856
+Section: misc
+Priority: optional
+Description: Development files for Telemetry 2.0
+ Development files (headers) for the Telemetry 2.0 framework.
+
+Package: utopia
+Version: 1.4.0
+Architecture: arm64
+Maintainer: Package Workflows <packages@example.com>
+Installed-Size: 140
+Filename: pool/main/u/utopia/utopia_1.4.0_arm64.deb
+Size: 22696
+MD5sum: 90713425a7f121a8b7b524b19a99adc0
+SHA1: 56b064143c015204a2946d38e79f0e359b6d4e9f
+SHA256: bddc9c3a359cb3850ba87eb0d7fed178ef5b3e91c02bbb11e0dff19c7761ffc2
+Section: misc
+Priority: optional
+Description: RDK-B Utopia service framework
+ Utopia is a service framework for RDK-B providing network configuration,
+ system event management, and various network services including DHCP,
+ IPv6, firewall, and routing services.
+
+Package: xmidt-agent-rs
+Version: 0.2.0
+Architecture: arm64
+Maintainer: Package Workflows <packages@example.com>
+Installed-Size: 5384
+Filename: pool/main/x/xmidt-agent-rs/xmidt-agent-rs_0.2.0_arm64.deb
+Size: 1955908
+MD5sum: 484c4aeb1e55a5c8ca92b541065c6591
+SHA1: 461de8cf13e32c0e387c70ac28c53e82369c9cb6
+SHA256: e26db4565a95479b182f55e3260e225568308fcd0678bca8aef33890255c0966
+Section: misc
+Priority: optional
+Description: An xMiDT agent implementation in Rust
+ xmidt-agent-rs is a Rust implementation of an xMiDT agent that
+ connects to the XMiDT cloud infrastructure for device management
+ and communication.
+ .
+ This package provides the xmidt-agent-rs binary for running
+ the agent on devices.
 
