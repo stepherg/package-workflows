@@ -5,13 +5,13 @@ Codename: stable
 Architectures: arm64
 Components: main
 Description: RDK and XMiDT component packages
-Date: Tue, 16 Dec 2025 20:57:49 +0000
+Date: Wed, 17 Dec 2025 11:50:25 +0000
 MD5Sum:
- 105eb37912aa7039793ba81072bb8060             9554 main/binary-arm64/Packages.gz
- 95d726bd7f1f781fdf7f0a9a00b6d0ac            32733 main/binary-arm64/Packages
+ 66f9b1a47efc8b2fa4be095cccbbb1be            10146 main/binary-arm64/Packages.gz
+ 9423391e29b37a309804e814b86256ed            35075 main/binary-arm64/Packages
 SHA1:
- 36f698486a339a7c60aa346db8fe58323762de29             9554 main/binary-arm64/Packages.gz
- b0d056bc8178cf51b1151277bc3a4627aa58f10b            32733 main/binary-arm64/Packages
+ 4fcdc79c0d5e5b17e0c792099f169766bca4cd4f            10146 main/binary-arm64/Packages.gz
+ 43962576b84e92d6dd74218854392c03d983b41f            35075 main/binary-arm64/Packages
 SHA256:
- 880d220348157d8e1a12ded1ea25396769c546ea82f8a094f7a11ba10085b846             9554 main/binary-arm64/Packages.gz
- 6f742114bc67e831584dec64868a63dcf35aa3a113e6eeca1c3bbac17c735f72            32733 main/binary-arm64/Packages
+ 9a32bcc786108b12783f4ed0f9b86d8d0fa5f3a2a79424eaac1dd979ff093e99            10146 main/binary-arm64/Packages.gz
+ eab2eaa46fa5796ef77777dcc8de65a18a9d04551706c082b1a1a9f577d58e39            35075 main/binary-arm64/Packages
