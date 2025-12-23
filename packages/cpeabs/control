@@ -1,0 +1,19 @@
+Source: cpeabs
+Version: 1.0.0
+Upstream-URL: https://github.com/xmidt-org/cpeabs
+Upstream-Ref: 13357f707ec57a78d38d571c1468a5a71a92595a
+Build-Depends: linenoise, rbus, librbus-dev, libwdmp-c, libwdmp-c-dev, libcimplog, libcimplog-dev
+
+Package: libcpeabs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Abstraction layer for consumer preference equipment systems
+ An abstraction layer for consumer preference equipment systems.
+ Part of the XMiDT project for device management.
+
+Package: libcpeabs-dev
+Architecture: any
+Depends: libcpeabs (= ${version}), ${misc:Depends}
+Description: Development files for cpeabs
+ Development files (headers and static library) for the cpeabs
+ abstraction layer library.

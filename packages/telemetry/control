@@ -6,7 +6,7 @@ Build-Depends: libglib2.0-dev, libmsgpack-dev, libcjson-dev, libcurl4-openssl-de
 
 Package: telemetry
 Architecture: any
-Depends: psmisc, libwebconfig-framework, librdk-logger, rbus, libsyswrapper, ${shlibs:Depends}, ${misc:Depends}
+Depends: psmisc, ${shlibs:Depends}, ${misc:Depends}
 Description: RDK Telemetry 2.0 framework
  Telemetry 2.0 is a framework for collecting and reporting device metrics
  and diagnostics data. Part of the RDK (Reference Design Kit) framework.

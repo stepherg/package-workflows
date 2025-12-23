@@ -1,0 +1,10 @@
+-DBUILD_YOCTO=ON
+-DWEBCONFIG_BIN_SUPPORT:BOOL=true
+-DCMAKE_C_FLAGS=" -I/usr/include/cimplog 
+-I/usr/include/cjson 
+-I/usr/include/trower-base64 
+-I/usr/include/wrp-c 
+-I/usr/include/wdmp-c
+-Wno-unused-result 
+-Wno-stringop-truncation 
+-Wno-format-overflow"

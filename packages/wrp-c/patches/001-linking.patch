@@ -1,0 +1,19 @@
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 969b8c7..a41e11f 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -19,10 +19,13 @@ set(SOURCES wrp-c.c)
+ 
+ add_library(${PROJ_WRPC} STATIC ${HEADERS} ${SOURCES})
+ add_library(${PROJ_WRPC}.shared SHARED ${HEADERS} ${SOURCES})
+-set_target_properties(${PROJ_WRPC}.shared PROPERTIES OUTPUT_NAME ${PROJ_WRPC})
++set_target_properties(${PROJ_WRPC}.shared PROPERTIES OUTPUT_NAME ${PROJ_WRPC} SOVERSION "1")
+ set_property(TARGET ${PROJ_WRPC} PROPERTY C_STANDARD 99)
+ set_property(TARGET ${PROJ_WRPC}.shared PROPERTY C_STANDARD 99)
+ 
++# Link required dependencies so DT_NEEDED records runtime libs
++target_link_libraries(${PROJ_WRPC}.shared PRIVATE cimplog trower-base64 msgpackc)
++
+ if (DEVICE_EXTENDER)
+ add_definitions(-DDEVICE_EXTENDER)
+ endif()

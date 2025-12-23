@@ -1,0 +1,15 @@
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 2e3c1f8..d70c16e 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -19,7 +19,9 @@ set(SOURCES cjwt.c)
+ 
+ add_library(${PROJ_CJWT} STATIC ${HEADERS} ${SOURCES})
+ add_library(${PROJ_CJWT}.shared SHARED ${HEADERS} ${SOURCES})
+-set_target_properties(${PROJ_CJWT}.shared PROPERTIES OUTPUT_NAME ${PROJ_CJWT})
++set_target_properties(${PROJ_CJWT}.shared PROPERTIES OUTPUT_NAME ${PROJ_CJWT} SOVERSION "1")
++
++target_link_libraries(${PROJ_CJWT}.shared PRIVATE cjson trower-base64 crypto)
+ 
+ install (TARGETS ${PROJ_CJWT} DESTINATION lib${LIB_SUFFIX})
+ install (TARGETS ${PROJ_CJWT}.shared DESTINATION lib${LIB_SUFFIX})

@@ -1,14 +1,15 @@
 Source: linenoise
-Package: linenoise
 Version: 1.0
-Section: libs
-Priority: optional
-Architecture: any
-Maintainer: Package Workflows <packages@example.com>
 Upstream-URL: https://github.com/antirez/linenoise
 Upstream-Ref: e26268d
 Build-Depends: make
+
+Package: liblinenoise
+Section: libs
+Priority: optional
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Minimal line editing library
  A minimal, zero-config, BSD licensed, readline replacement.
  Linenoise is a line editing library used to provide readline-like
  functionality to command line applications with minimal dependencies.
+

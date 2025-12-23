@@ -1,0 +1,18 @@
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 4e63b4a..0529251 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -51,10 +51,12 @@ endif ()
+ #Support cpeabs lib for backward compatibility
+ add_library(${PROJ_CPEABS} STATIC ${HEADERS} ${SOURCES})
+ add_library(${PROJ_CPEABS}.shared SHARED ${HEADERS} ${SOURCES})
+-set_target_properties(${PROJ_CPEABS}.shared PROPERTIES OUTPUT_NAME ${PROJ_CPEABS})
++set_target_properties(${PROJ_CPEABS}.shared PROPERTIES OUTPUT_NAME ${PROJ_CPEABS} SOVERSION "1")
+ set_property(TARGET ${PROJ_CPEABS} PROPERTY C_STANDARD 99)
+ set_property(TARGET ${PROJ_CPEABS}.shared PROPERTY C_STANDARD 99)
+ 
++target_link_libraries(${PROJ_CPEABS}.shared PRIVATE cimplog wdmp-c rbus)
++
+ install (TARGETS ${PROJ_CPEABS} DESTINATION lib${LIB_SUFFIX})
+ install (TARGETS ${PROJ_CPEABS}.shared DESTINATION lib${LIB_SUFFIX})
+ install (FILES ${HEADERS} DESTINATION include/${PROJ_CPEABS})

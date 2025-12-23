@@ -1,0 +1,11 @@
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -90,7 +90,7 @@ if (WEBCONFIG_BIN_SUPPORT)
+ 
+ add_executable(webconfig ${SOURCES} ${HEADERS})
+ set_property(TARGET webconfig PROPERTY C_STANDARD 99)
+-set(COMMON_LIBS -lwrp-c -lpthread -lwdmp-c -lmsgpackc -ltrower-base64 -lm -lcjson -lrt -luuid -lrbus)
++set(COMMON_LIBS -lwrp-c -lpthread -lwdmp-c -lmsgpackc -ltrower-base64 -lm -lcjson -lrt -luuid -lrbus -lcpeabs)
+ 
+ if (NOT FEATURE_SUPPORT_MQTTCM)
+ set(COMMON_LIBS ${COMMON_LIBS} -lcurl)

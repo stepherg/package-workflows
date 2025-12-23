@@ -1,0 +1,201 @@
+diff --git a/source/ccsp/include/ccsp_message_bus.h b/source/ccsp/include/ccsp_message_bus.h
+index 39196e3..d6f9e9f 100644
+--- a/source/ccsp/include/ccsp_message_bus.h
++++ b/source/ccsp/include/ccsp_message_bus.h
+@@ -61,7 +61,112 @@
+ #ifndef CCSP_MESSAGE_BUS_H
+ #define CCSP_MESSAGE_BUS_H
+ 
++#ifdef CCSP_ENABLE_DBUS
+ #include <dbus/dbus.h>
++/* Forward declare internal DBus type */
++typedef struct DBusLoop DBusLoop;
++#else
++/* Stub types when DBus is disabled (default) */
++#include <stdlib.h>
++typedef void* DBusConnection;
++typedef void* DBusMessage;
++typedef void* DBusLoop;
++typedef void* DBusWatch;
++typedef void* DBusTimeout;
++typedef void* DBusPendingCall;
++typedef int (*DBusObjectPathMessageFunction)(void*, void*, void*);
++typedef int DBusHandlerResult;
++typedef int DBusDispatchStatus;
++typedef int dbus_bool_t;
++
++/* DBusObjectPathVTable structure */
++typedef struct {
++    void (*unregister_function)(DBusConnection*, void*);
++    DBusObjectPathMessageFunction message_function;
++    void (*dbus_internal_pad1)(void*);
++    void (*dbus_internal_pad2)(void*);
++    void (*dbus_internal_pad3)(void*);
++    void (*dbus_internal_pad4)(void*);
++} DBusObjectPathVTable;
++
++/* Stub DBusError structure */
++typedef struct {
++    const char *name;
++    const char *message;
++    unsigned int dummy1 : 1;
++    unsigned int dummy2 : 1;
++    unsigned int dummy3 : 1;
++    unsigned int padding1 : 29;
++    void *padding2;
++} DBusError;
++
++/* DBus constants */
++#define DBUS_TYPE_INVALID           0
++#define DBUS_TYPE_STRING            ((int) 's')
++#define DBUS_HANDLER_RESULT_HANDLED 0
++#define DBUS_HANDLER_RESULT_NOT_YET_HANDLED 1
++#define DBUS_MESSAGE_TYPE_SIGNAL    1
++#define DBUS_MESSAGE_TYPE_METHOD_RETURN 2
++#define DBUS_INTERFACE_LOCAL        "org.freedesktop.DBus.Local"
++#define DBUS_DISPATCH_COMPLETE      0
++#define DBUS_SERVICE_DBUS           "org.freedesktop.DBus"
++#define DBUS_PATH_DBUS              "/org/freedesktop/DBus"
++#define DBUS_INTERFACE_DBUS         "org.freedesktop.DBus"
++#define DBUS_NAME_FLAG_ALLOW_REPLACEMENT 0x1
++#define DBUS_NAME_FLAG_REPLACE_EXISTING  0x2
++#define DBUS_NAME_FLAG_DO_NOT_QUEUE      0x4
++#define DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER 1
++#define DBUS_REQUEST_NAME_REPLY_ALREADY_OWNER 4
++
++/* DBus stub function declarations */
++void dbus_error_init(DBusError *error);
++void dbus_error_free(DBusError *error);
++int dbus_error_is_set(const DBusError *error);
++DBusConnection* dbus_connection_open_private(const char *address, DBusError *error);
++void dbus_connection_close(DBusConnection *connection);
++void dbus_connection_unref(DBusConnection *connection);
++DBusConnection* dbus_connection_ref(DBusConnection *connection);
++void dbus_connection_lock(DBusConnection *connection);
++void dbus_connection_unlock(DBusConnection *connection);
++int dbus_bus_register(DBusConnection *connection, DBusError *error);
++int dbus_bus_request_name(DBusConnection *connection, const char *name, unsigned int flags, DBusError *error);
++int dbus_connection_send(DBusConnection *connection, DBusMessage *message, unsigned int *serial);
++int dbus_connection_send_with_reply(DBusConnection *connection, DBusMessage *message, DBusPendingCall **pending, int timeout_ms);
++DBusMessage* dbus_connection_send_with_reply_and_block(DBusConnection *connection, DBusMessage *message, int timeout_ms, DBusError *error);
++int dbus_connection_get_is_connected(DBusConnection *connection);
++int dbus_connection_set_dispatch_status_function(DBusConnection *connection, void *function, void *data, void *free_data);
++int dbus_connection_set_watch_functions(DBusConnection *connection, void *add, void *remove, void *toggle, void *data, void *free_data);
++int dbus_connection_set_timeout_functions(DBusConnection *connection, void *add, void *remove, void *toggle, void *data, void *free_data);
++int dbus_connection_get_dispatch_status(DBusConnection *connection);
++int dbus_connection_try_register_object_path(DBusConnection *connection, const char *path, const DBusObjectPathVTable *vtable, void *user_data, DBusError *error);
++int dbus_connection_add_filter(DBusConnection *connection, void *function, void *user_data, void *free_data);
++DBusMessage* dbus_message_new_method_call(const char *bus_name, const char *path, const char *iface, const char *method);
++DBusMessage* dbus_message_new_signal(const char *path, const char *iface, const char *name);
++void dbus_message_unref(DBusMessage *message);
++DBusMessage* dbus_message_ref(DBusMessage *message);
++int dbus_message_append_args(DBusMessage *message, int first_arg_type, ...);
++int dbus_message_get_type(DBusMessage *message);
++int dbus_message_is_signal(DBusMessage *message, const char *iface, const char *name);
++const char* dbus_message_get_error_name(DBusMessage *message);
++const char* dbus_message_get_destination(DBusMessage *message);
++void dbus_free(void *memory);
++void* dbus_loop_ref(DBusLoop *loop);
++void dbus_loop_unref(DBusLoop *loop);
++int dbus_loop_remove_wake(DBusLoop *loop);
++int dbus_loop_add_watch(DBusLoop *loop, DBusWatch *watch);
++int dbus_loop_remove_watch(DBusLoop *loop, DBusWatch *watch);
++void dbus_loop_toggle_watch(DBusLoop *loop, DBusWatch *watch);
++int dbus_loop_add_timeout(DBusLoop *loop, DBusTimeout *timeout);
++int dbus_loop_remove_timeout(DBusLoop *loop, DBusTimeout *timeout);
++int dbus_loop_queue_dispatch(DBusLoop *loop, DBusConnection *connection);
++/* dbus_new0 macro for type-safe allocation */
++#define dbus_new0(type, count) ((type*)calloc((count), sizeof(type)))
++void dbus_pending_call_set_notify(DBusPendingCall *pending, void *function, void *user_data, void *free_data);
++DBusMessage* dbus_pending_call_steal_reply(DBusPendingCall *pending);
++void dbus_pending_call_cancel(DBusPendingCall *pending);
++void dbus_pending_call_unref(DBusPendingCall *pending);
++#endif
++
+ #include <pthread.h>
+ #include <rbus/rbus.h>
+ /*
+@@ -316,5 +421,5 @@ int CCSP_Message_Bus_Send_Msg_Block
+ 
+ #define DBUS_REGISTER_PATH_TIMES 10
+ 
+-#endif
++#endif /* CCSP_MESSAGE_BUS_H */
+ 
+diff --git a/source/util_api/ccsp_msg_bus/ccsp_message_bus.c b/source/util_api/ccsp_msg_bus/ccsp_message_bus.c
+index 28e071b..53ebde3 100644
+--- a/source/util_api/ccsp_msg_bus/ccsp_message_bus.c
++++ b/source/util_api/ccsp_msg_bus/ccsp_message_bus.c
+@@ -38,7 +38,9 @@
+ #include <unistd.h>
+ #include <string.h>
+ #include <pthread.h>
++#ifdef CCSP_ENABLE_DBUS
+ #include <dbus/dbus.h>
++#endif
+ #include <ccsp_message_bus.h>
+ #include "ccsp_base_api.h"
+ #include "ccsp_trace.h"
+@@ -77,8 +79,10 @@
+ #define CCSP_MESSAGE_MAINLOOP_WAKE_RETRY_MS 50
+ 
+ // EXTERNAL
++#ifdef CCSP_ENABLE_DBUS
+ extern void dbus_connection_lock (DBusConnection *connection);
+ extern void dbus_connection_unlock (DBusConnection *connection);
++#endif
+ 
+ extern CCSP_DEADLOCK_DETECTION_INFO deadlock_detection_info;
+ extern int   CcspBaseIf_timeout_protect_plus_seconds;
+@@ -3040,3 +3044,51 @@ CCSP_Message_Bus_Send_Msg_Block
+ 
+     return ret;
+ }
++
++#ifndef CCSP_ENABLE_DBUS
++/* Stub implementations when DBus is disabled (default) */
++void dbus_error_init(DBusError *error) { if(error) { error->name = NULL; error->message = NULL; } }
++void dbus_error_free(DBusError *error) { (void)error; }
++int dbus_error_is_set(const DBusError *error) { return 0; }
++DBusConnection* dbus_connection_open_private(const char *address, DBusError *error) { (void)address; (void)error; return NULL; }
++void dbus_connection_close(DBusConnection *connection) { (void)connection; }
++void dbus_connection_unref(DBusConnection *connection) { (void)connection; }
++DBusConnection* dbus_connection_ref(DBusConnection *connection) { return connection; }
++void dbus_connection_lock(DBusConnection *connection) { (void)connection; }
++void dbus_connection_unlock(DBusConnection *connection) { (void)connection; }
++int dbus_bus_register(DBusConnection *connection, DBusError *error) { (void)connection; (void)error; return 0; }
++int dbus_bus_request_name(DBusConnection *connection, const char *name, unsigned int flags, DBusError *error) { (void)connection; (void)name; (void)flags; (void)error; return DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER; }
++int dbus_connection_send(DBusConnection *connection, DBusMessage *message, unsigned int *serial) { (void)connection; (void)message; (void)serial; return 0; }
++int dbus_connection_send_with_reply(DBusConnection *connection, DBusMessage *message, DBusPendingCall **pending, int timeout_ms) { (void)connection; (void)message; (void)pending; (void)timeout_ms; return 0; }
++DBusMessage* dbus_connection_send_with_reply_and_block(DBusConnection *connection, DBusMessage *message, int timeout_ms, DBusError *error) { (void)connection; (void)message; (void)timeout_ms; (void)error; return NULL; }
++int dbus_connection_get_is_connected(DBusConnection *connection) { (void)connection; return 0; }
++int dbus_connection_set_dispatch_status_function(DBusConnection *connection, void *function, void *data, void *free_data) { (void)connection; (void)function; (void)data; (void)free_data; return 1; }
++int dbus_connection_set_watch_functions(DBusConnection *connection, void *add, void *remove, void *toggle, void *data, void *free_data) { (void)connection; (void)add; (void)remove; (void)toggle; (void)data; (void)free_data; return 1; }
++int dbus_connection_set_timeout_functions(DBusConnection *connection, void *add, void *remove, void *toggle, void *data, void *free_data) { (void)connection; (void)add; (void)remove; (void)toggle; (void)data; (void)free_data; return 1; }
++int dbus_connection_get_dispatch_status(DBusConnection *connection) { (void)connection; return DBUS_DISPATCH_COMPLETE; }
++int dbus_connection_try_register_object_path(DBusConnection *connection, const char *path, const DBusObjectPathVTable *vtable, void *user_data, DBusError *error) { (void)connection; (void)path; (void)vtable; (void)user_data; (void)error; return 1; }
++int dbus_connection_add_filter(DBusConnection *connection, void *function, void *user_data, void *free_data) { (void)connection; (void)function; (void)user_data; (void)free_data; return 1; }
++DBusMessage* dbus_message_new_method_call(const char *bus_name, const char *path, const char *iface, const char *method) { (void)bus_name; (void)path; (void)iface; (void)method; return NULL; }
++DBusMessage* dbus_message_new_signal(const char *path, const char *iface, const char *name) { (void)path; (void)iface; (void)name; return NULL; }
++void dbus_message_unref(DBusMessage *message) { (void)message; }
++DBusMessage* dbus_message_ref(DBusMessage *message) { return message; }
++int dbus_message_append_args(DBusMessage *message, int first_arg_type, ...) { (void)message; (void)first_arg_type; return 1; }
++int dbus_message_get_type(DBusMessage *message) { (void)message; return 0; }
++int dbus_message_is_signal(DBusMessage *message, const char *iface, const char *name) { (void)message; (void)iface; (void)name; return 0; }
++const char* dbus_message_get_error_name(DBusMessage *message) { (void)message; return "org.freedesktop.DBus.Error.Failed"; }
++const char* dbus_message_get_destination(DBusMessage *message) { (void)message; return ""; }
++void dbus_free(void *memory) { free(memory); }
++void* dbus_loop_ref(DBusLoop *loop) { return loop; }
++void dbus_loop_unref(DBusLoop *loop) { (void)loop; }
++int dbus_loop_remove_wake(DBusLoop *loop) { (void)loop; return 1; }
++int dbus_loop_add_watch(DBusLoop *loop, DBusWatch *watch) { (void)loop; (void)watch; return 1; }
++int dbus_loop_remove_watch(DBusLoop *loop, DBusWatch *watch) { (void)loop; (void)watch; return 1; }
++void dbus_loop_toggle_watch(DBusLoop *loop, DBusWatch *watch) { (void)loop; (void)watch; }
++int dbus_loop_add_timeout(DBusLoop *loop, DBusTimeout *timeout) { (void)loop; (void)timeout; return 1; }
++int dbus_loop_remove_timeout(DBusLoop *loop, DBusTimeout *timeout) { (void)loop; (void)timeout; return 1; }
++int dbus_loop_queue_dispatch(DBusLoop *loop, DBusConnection *connection) { (void)loop; (void)connection; return 1; }
++void dbus_pending_call_set_notify(DBusPendingCall *pending, void *function, void *user_data, void *free_data) { (void)pending; (void)function; (void)user_data; (void)free_data; }
++DBusMessage* dbus_pending_call_steal_reply(DBusPendingCall *pending) { (void)pending; return NULL; }
++void dbus_pending_call_cancel(DBusPendingCall *pending) { (void)pending; }
++void dbus_pending_call_unref(DBusPendingCall *pending) { (void)pending; }
++#endif /* !CCSP_ENABLE_DBUS */

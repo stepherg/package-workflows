@@ -1,0 +1,14 @@
+Source: component-registry
+Version: 1.0.0
+Upstream-URL: https://github.com/rdkcentral/component-registry.git
+Upstream-Ref: 1.0.0
+Build-Depends: libcjson-dev, libmsgpack-dev, libtrower-base64, libtrower-base64-dev, libsafec, libsafec-dev, librdk-logger, librdk-logger-dev, libccsp-common, libccsp-common-dev, linenoise, rbus, librbus-dev, libxml2-dev, libsyswrapper, libsyswrapper-dev, telemetry, telemetry-dev, utopia, utopia-dev
+
+Package: component-registry
+Section: misc
+Priority: optional
+Depends: ${shlibs:Depends}
+Description: RDK Component Registry (CR)
+ The Component Registry is a central component in the RDK software stack
+ that manages component registration and provides component lookup services.
+ It uses RBUS for inter-component communication.

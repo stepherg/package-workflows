@@ -1,0 +1,7 @@
+-DPLATFORM=DEVICE_GATEWAY
+-DBUILD_YOCTO=ON
+-DCMAKE_C_FLAGS="-DRDKB_EMU
+-I/usr/include/cimplog
+-I/usr/include/wdmp-c
+-Wno-stringop-truncation
+-Wno-stringop-overflow"

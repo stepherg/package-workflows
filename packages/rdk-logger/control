@@ -7,7 +7,7 @@ Build-Depends: liblog4c-dev
 Package: librdk-logger
 Section: libs
 Priority: optional
-Depends: libc6, liblog4c3
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: RDK Logger - Runtime library
  RDK Logger is a general-purpose logging mechanism for RDK components.
  It supports multiple log levels and modules, with log levels configured
@@ -28,7 +28,7 @@ Description: RDK Logger - Development files
 Package: rdk-logger-utils
 Section: utils
 Priority: optional
-Depends: libc6, librdk-logger (= ${version})
+Depends: librdk-logger (= ${version})
 Description: RDK Logger - Utilities
  RDK Logger is a general-purpose logging mechanism for RDK components.
  .

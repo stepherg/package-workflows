@@ -46,7 +46,7 @@ jobs:
             ubuntu:20.04 \
             bash -c '
               set -euo pipefail
-              
+
               # Source build helpers
               source scripts/build-helpers/build-common.sh
 

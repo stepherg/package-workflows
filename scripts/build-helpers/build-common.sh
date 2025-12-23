@@ -2,7 +2,7 @@
 # build-common.sh - Shared build functions for packaging workflows
 # This script provides reusable functions for building Debian packages from various upstream projects
 
-set -euo pipefail
+# set -euo pipefail
 
 # Color output for better readability
 RED='\033[0;31m'
@@ -50,7 +50,7 @@ install_build_dependencies() {
     
     if [ -z "$build_deps" ]; then
         log_info "No build dependencies specified"
-        return 0
+        # return 0
     fi
     
     log_info "Build dependencies: $build_deps"
@@ -201,19 +201,23 @@ build_cmake() {
     # Read custom cmake options if available
     local custom_options=""
     if [ -f "/workspace/packages/$project/cmake_options" ]; then
-        custom_options=$(cat "/workspace/packages/$project/cmake_options")
+        custom_options=$(cat "/workspace/packages/$project/cmake_options" | tr '\n' ' ' | tr -s ' ')
         log_info "Using custom CMake options: $custom_options"
     fi
+    local static_options="-DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_TESTING=OFF \
+          -DCMAKE_INSTALL_PREFIX=/usr \
+          -DCMAKE_C_FLAGS_RELEASE=\"-g -O2\" \
+          -DCMAKE_CXX_FLAGS_RELEASE=\"-g -O2\""
+
+    local cmake_options=$(echo "$static_options $custom_options" | tr -s '[:space:]')
     
     mkdir -p build
     cd build
-    
-    cmake -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_INSTALL_PREFIX=/usr \
-          -DCMAKE_C_FLAGS_RELEASE="-g -O2" \
-          -DCMAKE_CXX_FLAGS_RELEASE="-g -O2" \
-          $custom_options \
-          ..
+
+    local cmake_cmd="cmake $cmake_options .."
+
+    eval "$cmake_cmd"
     
     make -j$(nproc)
     
@@ -394,25 +398,213 @@ detect_dependencies() {
     local project=$1
     local staging_dir=$2
     
-    log_info "Detecting runtime dependencies..."
+    log_info "Detecting runtime dependencies in: $staging_dir"
     
-    # Find all binaries and shared libraries
+    # Find all ELF binaries and shared libraries
     local bins=$(find "$staging_dir" -type f \( -executable -o -name "*.so*" \) 2>/dev/null || true)
     
     if [ -z "$bins" ]; then
-        log_warning "No binaries or libraries found for dependency detection"
+        log_warning "No files found in $staging_dir"
         return 0
     fi
     
-    # Use dpkg-shlibdeps to detect dependencies
-    local deps=""
-    if command -v dpkg-shlibdeps &> /dev/null; then
-        deps=$(dpkg-shlibdeps -O $bins 2>/dev/null | sed 's/shlibs:Depends=//' || true)
+    log_info "Found files: $(echo "$bins" | wc -l) files"
+    
+    # Filter for ELF files
+    local elf_bins=""
+    while IFS= read -r bin; do
+        if [ -f "$bin" ] && file "$bin" 2>/dev/null | grep -q ELF; then
+            elf_bins="$elf_bins$bin"$'\n'
+        fi
+    done <<< "$bins"
+    
+    if [ -z "$elf_bins" ]; then
+        log_warning "No ELF binaries or libraries found for dependency detection"
+        return 0
     fi
     
+    log_info "Found ELF files: $(echo "$elf_bins" | grep -c . || echo 0) files"
+
+    # Try dpkg-shlibdeps first to get official dependencies
+    local deps=""
+    if command -v dpkg-shlibdeps &> /dev/null; then
+        # Create temporary debian directory structure for dpkg-shlibdeps
+        local temp_debian=$(mktemp -d)
+        mkdir -p "$temp_debian/debian"
+        cat > "$temp_debian/debian/control" << EOF
+Source: $project
+Section: misc
+Priority: optional
+
+Package: $project
+Architecture: any
+Depends:
+Description: Temporary package for dependency detection
+EOF
+
+        # If mapping files exist, expose them as shlibs.local for dpkg-shlibdeps to consult
+        if [ -f "packages/shlibs.map" ] || [ -f "packages/$project/shlibs.map" ]; then
+            mkdir -p "$temp_debian/debian"
+            : > "$temp_debian/debian/shlibs.local"
+            for mf in packages/shlibs.map packages/$project/shlibs.map; do
+                [ -f "$mf" ] || continue
+                while IFS= read -r line; do
+                    [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+                    # Accept either "libname major package (>= ver)" lines directly,
+                    # or simplified "name -> package" entries (write with major 0)
+                    if echo "$line" | grep -q '->'; then
+                        key=$(echo "$line" | awk -F'->' '{gsub(/^[[:space:]]+|[[:space:]]+$/,"",$1); print $1}')
+                        val=$(echo "$line" | awk -F'->' '{gsub(/^[[:space:]]+|[[:space:]]+$/,"",$2); print $2}')
+                        [ -n "$key" ] && [ -n "$val" ] && echo "lib${key} 0 ${val}" >> "$temp_debian/debian/shlibs.local"
+                    else
+                        echo "$line" >> "$temp_debian/debian/shlibs.local"
+                    fi
+                done < "$mf"
+            done
+        fi
+
+        # Change to temp directory and run dpkg-shlibdeps across ELF files
+        deps=$(
+            cd "$temp_debian"
+            deps_all=""
+            while IFS= read -r bin; do
+                if [ -n "$bin" ] && [ -f "$bin" ]; then
+                    log_info "Checking dependencies for: $bin" >&2
+                    local shlibdeps_output=$(dpkg-shlibdeps -O -e"$bin" 2>&1)
+                    log_info "dpkg-shlibdeps full output: $shlibdeps_output" >&2
+                    local deps_line=$(echo "$shlibdeps_output" | grep "shlibs:Depends=" | sed 's/.*shlibs:Depends=//' || true)
+                    if [ -n "$deps_line" ]; then
+                        if [ -z "$deps_all" ]; then
+                            deps_all="$deps_line"
+                        else
+                            deps_all="$deps_all, $deps_line"
+                        fi
+                    fi
+                fi
+            done <<< "$elf_bins"
+            if [ -n "$deps_all" ]; then
+                echo "$deps_all" | tr ',' '\n' | sed 's/^ *//; s/ *$//' | awk 'NF' | sort -u | paste -sd, -
+            fi
+        )
+
+        rm -rf "$temp_debian"
+    fi
+
     if [ -n "$deps" ]; then
         log_info "Detected dependencies: $deps"
         echo "$deps"
+        return 0
+    fi
+
+    # Fallback to ldd-based inference if dpkg-shlibdeps didn't resolve
+    log_info "dpkg-shlibdeps did not yield deps; using ldd fallback"
+        local all_libs=""
+        while IFS= read -r bin; do
+            if [ -f "$bin" ]; then
+                local ldd_out=$(ldd "$bin" 2>/dev/null || true)
+                # Extract library names before the '=>'
+                local libs=$(echo "$ldd_out" | awk -F '=>' '{print $1}' | awk '{print $1}' | grep -E '^lib[^ ]+\.so(\.[0-9]+)*' || true)
+                if [ -n "$libs" ]; then
+                    all_libs="$all_libs$libs"$'\n'
+                fi
+            fi
+        done <<< "$elf_bins"
+
+        # Known system libs to ignore
+        local ignore_pattern='^(libc\.so|libm\.so|libpthread\.so|librt\.so|libdl\.so|libgcc_s\.so|libstdc\+\+\.so|ld-linux|ld-musl|libcrypt\.so|libresolv\.so|libnsl\.so|libz\.so)'
+
+        # Collect candidate library basenames
+        local candidates=()
+        while IFS= read -r lib; do
+            [[ -z "$lib" ]] && continue
+            echo "$lib" | grep -Eq "$ignore_pattern" && continue
+            local base=$(basename "$lib")
+            # Strip lib prefix and .so suffix with optional version
+            local name=$(echo "$base" | sed -E 's/^lib//; s/\.so(\..*)?$//' )
+            # Normalize underscores to dashes
+            name=$(echo "$name" | tr '_' '-')
+            if [ -n "$name" ]; then
+                candidates+=("$name")
+            fi
+        done <<< "$(echo "$all_libs" | sort -u)"
+
+        # Build set of known package names from packages/*/control
+        local known_pkgs=()
+        while IFS= read -r ctrl; do
+            while IFS= read -r p; do
+                [[ -n "$p" ]] && known_pkgs+=("$p")
+            done < <(grep '^Package:' "$ctrl" | sed 's/^Package: *//')
+        done < <(find packages -maxdepth 2 -type f -name control 2>/dev/null)
+
+        # Load optional mapping rules from shlibs.map files
+        # Supports:
+        #   libname -> package
+        #   regex: ^libfoo\.so.* -> package
+        # Global map at packages/shlibs.map and per-package map at packages/<project>/shlibs.map
+        local map_files=()
+        [ -f "packages/shlibs.map" ] && map_files+=("packages/shlibs.map")
+        [ -f "packages/$project/shlibs.map" ] && map_files+=("packages/$project/shlibs.map")
+        local map_rules=()
+        for mf in "${map_files[@]}"; do
+            while IFS= read -r line; do
+                [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+                map_rules+=("$line")
+            done < "$mf"
+        done
+
+        # Map candidates to known package names
+        local mapped=()
+        for c in "${candidates[@]}"; do
+            local match=""
+            # Apply explicit map rules first: format "key -> package"
+            for rule in "${map_rules[@]}"; do
+                local key=$(echo "$rule" | awk -F'->' '{gsub(/[[:space:]]+/,"",$1); print $1}')
+                local val=$(echo "$rule" | awk -F'->' '{gsub(/[[:space:]]+/,"",$2); print $2}')
+                if [[ -n "$key" && -n "$val" ]]; then
+                    # If key looks like regex, match against lib name variants
+                    if echo "$key" | grep -qE '[\^\$\[\]\|\(\)\?\*\+\.]'; then
+                        # Test against raw lib name and lib<name>
+                        if echo "lib${c}.so" | grep -qE "$key" || echo "$c" | grep -qE "$key"; then
+                            match="$val"; break
+                        fi
+                    else
+                        # Plain key: match against candidate name
+                        if [ "$key" = "$c" ] || [ "$key" = "lib${c}" ]; then
+                            match="$val"; break
+                        fi
+                    fi
+                fi
+            done
+            if [ -n "$match" ]; then
+                mapped+=("$match")
+                continue
+            fi
+            for kp in "${known_pkgs[@]}"; do
+                if [ "$kp" = "$c" ]; then
+                    match="$kp"; break
+                fi
+                # Try common variations
+                if [ "$kp" = "${c}-lib" ] || [ "$kp" = "lib${c}" ]; then
+                    match="$kp"; break
+                fi
+                if [ -n "$match" ]; then break; fi
+            done
+            if [ -z "$match" ]; then
+                # As a heuristic, if a package directory exists matching candidate, use that
+                if [ -d "packages/$c" ]; then
+                    match="$c"
+                fi
+            fi
+            if [ -n "$match" ]; then
+                mapped+=("$match")
+            fi
+        done
+
+    # Deduplicate and format
+    if [ ${#mapped[@]} -gt 0 ]; then
+        local uniq=$(printf '%s\n' "${mapped[@]}" | sort -u | paste -sd, -)
+        log_info "Heuristic dependencies: $uniq"
+        echo "$uniq"
     else
         log_info "No additional dependencies detected"
         echo ""
@@ -553,14 +745,49 @@ EOF
     log_info "Package control file created"
     cat "$pkg_dir/DEBIAN/control"
     
+    # Generate shlibs file for shared libraries
+    local shlibs_found=0
+    # Collect library roots to scan
+    local lib_roots=()
+    [ -d "$pkg_dir/usr/lib" ] && lib_roots+=("$pkg_dir/usr/lib")
+    [ -d "$pkg_dir/lib" ] && lib_roots+=("$pkg_dir/lib")
+    if [ ${#lib_roots[@]} -gt 0 ]; then
+        while IFS= read -r lib; do
+            [ -e "$lib" ] || continue
+            local lib_soname=$(objdump -p "$lib" 2>/dev/null | grep SONAME | awk '{print $2}')
+            [ -n "$lib_soname" ] || lib_soname=$(basename "$lib")
+            if [ -n "$lib_soname" ]; then
+                local lib_base=$(echo "$lib_soname" | sed 's/\.so.*//')
+                local lib_major=$(echo "$lib_soname" | sed -n 's/.*\.so\.\([0-9]\+\).*/\1/p')
+                [ -n "$lib_major" ] || lib_major="0"
+                echo "$lib_base $lib_major $project (>= $version)" >> "$pkg_dir/DEBIAN/shlibs"
+                shlibs_found=1
+            fi
+        done < <(find ${lib_roots[@]} -name "*.so*" -a \( -type f -o -type l \) 2>/dev/null)
+    fi
+    if [ $shlibs_found -eq 1 ]; then
+        log_info "Generated shlibs file for $project"
+        cat "$pkg_dir/DEBIAN/shlibs"
+        
+        # Also install shlibs to system location for dpkg-shlibdeps
+        mkdir -p /var/lib/dpkg/info
+        cp "$pkg_dir/DEBIAN/shlibs" "/var/lib/dpkg/info/$project.shlibs"
+        log_info "Installed shlibs to /var/lib/dpkg/info/$project.shlibs"
+    fi
+    
     # Copy maintainer scripts if they exist
-    for script in postinst prerm postrm preinst; do
-        if [ -f "packages/$project/$script" ]; then
-            log_info "Adding $script script"
-            cp "packages/$project/$script" "$pkg_dir/DEBIAN/$script"
-            chmod 755 "$pkg_dir/DEBIAN/$script"
-        fi
-    done
+    # Only install for runtime packages (not -dev, -dbg, or -dbgsrc packages)
+    if [[ ! "$project" =~ -(dev|dbg|dbgsrc)$ ]]; then
+        for script in postinst prerm postrm preinst; do
+            if [ -f "packages/$project/$script" ]; then
+                log_info "Adding $script script"
+                cp "packages/$project/$script" "$pkg_dir/DEBIAN/$script"
+                chmod 755 "$pkg_dir/DEBIAN/$script"
+            fi
+        done
+    else
+        log_info "Skipping maintainer scripts for $project (dev/debug package)"
+    fi
     
     # Install systemd service files if they exist
     if ls packages/$project/*.service 1> /dev/null 2>&1; then
@@ -767,14 +994,49 @@ EOF
     
     echo "$description" >> "$pkg_dir/DEBIAN/control"
     
+    # Generate shlibs file for shared libraries
+    local shlibs_found=0
+    # Collect library roots to scan
+    local lib_roots=()
+    [ -d "$pkg_dir/usr/lib" ] && lib_roots+=("$pkg_dir/usr/lib")
+    [ -d "$pkg_dir/lib" ] && lib_roots+=("$pkg_dir/lib")
+    if [ ${#lib_roots[@]} -gt 0 ]; then
+        while IFS= read -r lib; do
+            [ -e "$lib" ] || continue
+            local lib_soname=$(objdump -p "$lib" 2>/dev/null | grep SONAME | awk '{print $2}')
+            [ -n "$lib_soname" ] || lib_soname=$(basename "$lib")
+            if [ -n "$lib_soname" ]; then
+                local lib_base=$(echo "$lib_soname" | sed 's/\.so.*//')
+                local lib_major=$(echo "$lib_soname" | sed -n 's/.*\.so\.\([0-9]\+\).*/\1/p')
+                [ -n "$lib_major" ] || lib_major="0"
+                echo "$lib_base $lib_major $pkg_name (>= $version)" >> "$pkg_dir/DEBIAN/shlibs"
+                shlibs_found=1
+            fi
+        done < <(find ${lib_roots[@]} -name "*.so*" -a \( -type f -o -type l \) 2>/dev/null)
+    fi
+    if [ $shlibs_found -eq 1 ]; then
+        log_info "Generated shlibs file for $pkg_name"
+        cat "$pkg_dir/DEBIAN/shlibs"
+        
+        # Also install shlibs to system location for dpkg-shlibdeps
+        mkdir -p /var/lib/dpkg/info
+        cp "$pkg_dir/DEBIAN/shlibs" "/var/lib/dpkg/info/$pkg_name.shlibs"
+        log_info "Installed shlibs to /var/lib/dpkg/info/$pkg_name.shlibs"
+    fi
+    
     # Copy maintainer scripts if they exist
-    for script in postinst prerm postrm preinst; do
-        if [ -f "packages/$project/$script" ]; then
-            log_info "Adding $script script to $pkg_name"
-            cp "packages/$project/$script" "$pkg_dir/DEBIAN/$script"
-            chmod 755 "$pkg_dir/DEBIAN/$script"
-        fi
-    done
+    # Only install for runtime packages (not -dev, -dbg, or -dbgsrc packages)
+    if [[ ! "$pkg_name" =~ -(dev|dbg|dbgsrc)$ ]]; then
+        for script in postinst prerm postrm preinst; do
+            if [ -f "packages/$project/$script" ]; then
+                log_info "Adding $script script to $pkg_name"
+                cp "packages/$project/$script" "$pkg_dir/DEBIAN/$script"
+                chmod 755 "$pkg_dir/DEBIAN/$script"
+            fi
+        done
+    else
+        log_info "Skipping maintainer scripts for $pkg_name (dev/debug package)"
+    fi
     
     # Install systemd service files if they exist
     # Only install for packages that are not -dev, -dbg, or -dbgsrc packages
@@ -1038,11 +1300,18 @@ EOF
 }
 
 # Main build orchestration function
-# Args: $1 = project name, $2 = architecture, $3 = upstream ref (optional, from workflow input)
+# Args: $1 = project name, $2 = architecture, $3 = upstream ref (optional, from workflow input), $4 = --skip-source flag (optional)
 build_package() {
     local project=$1
     local arch=$2
     local upstream_ref_override=${3:-""}
+    local skip_source=false
+    
+    # Check for --skip-source flag in any position
+    if [[ "$3" == "--skip-source" ]] || [[ "${4:-}" == "--skip-source" ]]; then
+        skip_source=true
+        log_info "Skipping source clone and patching (using existing source-$project)"
+    fi
     
     log_info "========================================="
     log_info "Building package: $project"
@@ -1100,15 +1369,24 @@ build_package() {
         return 1
     fi
     
-    # Clone upstream repository
-    clone_upstream "$project" "$upstream_url" "$upstream_ref"
-    
-    cd "source-$project"
-    
-    # Apply patches
-    cd /workspace
-    cd "source-$project"
-    apply_patches "$project"
+    # Clone upstream repository and apply patches (unless skipped)
+    if [ "$skip_source" = false ]; then
+        clone_upstream "$project" "$upstream_url" "$upstream_ref"
+        
+        cd "source-$project"
+        
+        # Apply patches
+        cd /workspace
+        cd "source-$project"
+        apply_patches "$project"
+    else
+        # Verify source directory exists
+        if [ ! -d "source-$project" ]; then
+            log_error "Source directory source-$project does not exist. Cannot skip source."
+            return 1
+        fi
+        cd "source-$project"
+    fi
     
     # Detect build system
     local buildsys=$(detect_build_system)
@@ -1153,6 +1431,13 @@ build_package() {
     mv -f *.deb /workspace/ 2>/dev/null || true
     cd /workspace
     ls -lh *.deb 2>/dev/null || log_warning "No .deb files found"
+    
+    # Clean up environment variables to prevent pollution between builds
+    log_info "Cleaning up build environment variables..."
+    unset CFLAGS CXXFLAGS LDFLAGS CPPFLAGS
+    unset CC CXX LD AR RANLIB NM STRIP OBJCOPY OBJDUMP
+    unset PKG_CONFIG_PATH PKG_CONFIG_LIBDIR
+    unset STAGING_DIR
     
     log_success "========================================="
     log_success "Package build completed successfully!"

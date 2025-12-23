@@ -1,11 +1,13 @@
 diff --git a/meson.build b/meson.build
-index 8a26674..051185f 100644
+index 8a26674..b5f5285 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -42,31 +42,6 @@ libtrower = library(meson.project_name(),
+@@ -40,32 +40,8 @@ sources = ['src/base64.c']
+ libtrower = library(meson.project_name(),
+                     sources,
                      include_directories: inc,
-                     install: true)
- 
+-                    install: true)
+-
 -################################################################################
 -# Define the tests
 -################################################################################
@@ -30,7 +32,8 @@ index 8a26674..051185f 100644
 -                                '--error-exitcode=1' ],
 -                 timeout_multiplier: 2)
 -endif
--
++                    install: true,
++                    soversion: '1')
+ 
  ################################################################################
  # Add the license check target
- ################################################################################

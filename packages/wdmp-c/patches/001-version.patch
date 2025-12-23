@@ -1,0 +1,13 @@
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 9092632..ac3aab5 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -19,7 +19,7 @@ set(SOURCES wdmp-c.c wdmp_internal.c)
+ 
+ add_library(${PROJ_WDMP} STATIC ${HEADERS} ${SOURCES})
+ add_library(${PROJ_WDMP}.shared SHARED ${HEADERS} ${SOURCES})
+-set_target_properties(${PROJ_WDMP}.shared PROPERTIES OUTPUT_NAME ${PROJ_WDMP})
++set_target_properties(${PROJ_WDMP}.shared PROPERTIES OUTPUT_NAME ${PROJ_WDMP} SOVERSION "1")
+ 
+ if (DEVICE_EXTENDER)
+ add_definitions(-DDEVICE_EXTENDER)

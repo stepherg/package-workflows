@@ -2,4 +2,4 @@ export CFLAGS+="-DFEATURE_SUPPORT_RDKLOG \
 	-I/usr/include/safeclib \
 	-I/usr/include/ccsp"
 
-export LDFLAGS+=" -lsafec -lpthread"
+export LDFLAGS+=" -lsafec -lsecure_wrapper -lpthread"

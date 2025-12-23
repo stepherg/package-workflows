@@ -1,7 +1,11 @@
-export CFLAGS+="-I/usr/include/cjson \
+export CFLAGS="-DWEBCONFIG_BIN_SUPPORT \
+   -DCCSP_SUPPORT_ENABLED \
+   -I/usr/include/cjson \
+   -I/usr/include/ccsp \
    -I/usr/include/rbus \
    -I/usr/include/rtmessage"
 
-export LDFLAGS+="-lrbuscore \
+export LDFLAGS="-lrbuscore \
 	-lrtMessage \
-	-lrbus"
+	-lrbus \
+   -lccsp_common"

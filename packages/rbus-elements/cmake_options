@@ -1,1 +1,2 @@
 -DCMAKE_BUILD_TYPE=Release
+-DCMAKE_C_FLAGS=" -Wno-unused-result -Wno-stringop-truncation"

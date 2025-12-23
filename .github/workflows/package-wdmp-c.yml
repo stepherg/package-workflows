@@ -1,0 +1,66 @@
+name: Package wdmp-c
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'packages/wdmp-c/**'
+      - 'scripts/**'
+      - '.github/workflows/package-wdmp-c.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'packages/wdmp-c/**'
+      - 'scripts/**'
+      - '.github/workflows/package-wdmp-c.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        platform: [arm64, amd64]
+        include:
+          - platform: arm64
+            docker_platform: linux/arm64
+          - platform: amd64
+            docker_platform: linux/amd64
+    
+    runs-on: ubuntu-latest
+    name: Build wdmp-c for ${{ matrix.platform }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU for multi-arch builds
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
+      - name: Build package in Docker
+        run: |
+          docker run --rm --platform=${{ matrix.docker_platform }} \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ubuntu:20.04 \
+            bash -c '
+              set -euo pipefail
+                            
+              # Source build helpers
+              source scripts/build-helpers/build-common.sh
+              
+              # Install dependencies for this package
+              install_build_dependencies wdmp-c
+              
+              # Build the package
+              build_package wdmp-c ${{ matrix.platform }}
+            '
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wdmp-c-${{ matrix.platform }}
+          path: |
+            libwdmp-c_*_${{ matrix.platform }}.deb
+            libwdmp-c-dev_*_${{ matrix.platform }}.deb

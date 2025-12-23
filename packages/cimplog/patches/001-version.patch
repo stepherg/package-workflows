@@ -1,0 +1,13 @@
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index aab0ba8..6036bf4 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -26,7 +26,7 @@ add_library(${PROJ_CIMPL} STATIC ${HEADERS} ${SOURCES})
+ add_library(${PROJ_CIMPL}.shared SHARED ${HEADERS} ${SOURCES})
+ set_target_properties(${PROJ_CIMPL}.shared PROPERTIES 
+         OUTPUT_NAME ${PROJ_CIMPL}
+-        SOVERSION "1.0.0")
++        SOVERSION "1")
+ 
+ # ----------------------------------------------------------------------------
+ # Note: This is a partial solution and only covers the case required for the

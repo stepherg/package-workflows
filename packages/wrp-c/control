@@ -7,7 +7,7 @@ Build-Depends: libmsgpack-dev, libmsgpackc2, libtrower-base64, libcimplog, libtr
 Package: libwrp-c
 Section: libs
 Priority: optional
-Depends: libtrower-base64, libcimplog, ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: C implementation of Web Routing Protocol - runtime
  wrp-c is a C implementation of the Web Routing Protocol. It provides
  a simple library that converts between C structures and msgpack encoded

@@ -1,8 +1,8 @@
 Source: cimplog
-Version: 1.0.3
+Version: 1.0.0
 Upstream-URL: https://github.com/xmidt-org/cimplog.git
 Upstream-Ref: v1.0.3
-Build-Depends: cmake
+Build-Depends: librdk-logger, librdk-logger-dev
 
 Package: libcimplog
 Section: libs

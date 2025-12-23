@@ -1,0 +1,3 @@
+-DBUILD_YOCTO=ON
+-DBUILD_TESTING=OFF
+-DCMAKE_C_FLAGS="-I/usr/include/cjson"

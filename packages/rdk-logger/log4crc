@@ -1,0 +1,52 @@
+<log4c>
+
+    <config>
+
+        <bufsize>0</bufsize>
+
+      <debug level="0" />
+
+        <nocleanup>0</nocleanup>
+
+        <reread>0</reread>
+
+   </config>
+
+    <!--
+
+        Layouts
+
+         We have created custom layouts for both "basic" and "dated" formats
+
+         that have no carriage returns.  All log statements must have their
+
+         own carriage returns, if desired.
+
+         Listed below are the available layouts.
+
+    -->
+
+
+   <layout name="basic" type="basic_nocr" />
+   <layout name="dated" type="dated_nocr" />
+   <layout name="comcast_dated" type="comcast_dated_nocr" />
+
+   <rollingpolicy name="RTROUTED_rollingpolicy" type="sizewin" maxsize="2097152" maxnum="2" />
+   <rollingpolicy name="PARODUS_rollingpolicy" type="sizewin" maxsize="2097152" maxnum="2" />
+   <rollingpolicy name="TELEMETRY_rollingpolicy" type="sizewin" maxsize="2097152" maxnum="2" />
+
+   <appender name="RTROUTEDrollingfileappender" type="rollingfile" logdir="/rdklogs/logs/"
+      prefix="RTROUTEDlog.txt" layout="comcast_dated" rollingpolicy="RTROUTED_rollingpolicy" />
+   <appender name="PARODUSrollingfileappender" type="rollingfile" logdir="/rdklogs/logs/"
+      prefix="PARODUSlog.txt" layout="comcast_dated" rollingpolicy="PARODUS_rollingpolicy" />
+   <appender name="TELEMETRYrollingfileappender" type="rollingfile" logdir="/rdklogs/logs/"
+      prefix="telemetry2_0.txt" layout="comcast_dated" rollingpolicy="TELEMETRY_rollingpolicy" />
+
+   <appender name="stdout" type="stream_env" layout="comcast_dated" />
+
+   <category name="LOG.RDK.RTMESSAGE" priority="debug" appender="RTROUTEDrollingfileappender" />
+   <category name="LOG.RDK.PARODUS" priority="debug" appender="PARODUSrollingfileappender" />
+   <category name="LOG.RDK.T2" priority="debug" appender="TELEMETRYrollingfileappender" />
+   <category name="LOG.RDK" priority="warning" appender="stdout" />
+
+</log4c>

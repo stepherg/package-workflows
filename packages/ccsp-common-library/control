@@ -2,7 +2,7 @@ Source: ccsp-common-library
 Version: 1.3.0
 Upstream-URL: https://github.com/rdkcentral/common-library.git
 Upstream-Ref: 1.3.0_stable2_20251205
-Build-Depends: liblog4c3, zlib1g-dev, libdbus-1-dev, libssl-dev, libsafec, libsafec-dev, linenoise, rbus, librbus-dev, libtrower-base64, libtrower-base64-dev, librdk-logger, librdk-logger-dev
+Build-Depends: liblog4c3, zlib1g-dev, libssl-dev, libsafec, libsafec-dev, linenoise, rbus, librbus-dev, libtrower-base64, libtrower-base64-dev, librdk-logger, librdk-logger-dev
 Section: libs
 Priority: optional
 Maintainer: RDK Management

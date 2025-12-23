@@ -2,12 +2,12 @@ Source: parodus
 Version: 2.10.0
 Upstream-URL: https://github.com/xmidt-org/parodus.git
 Upstream-Ref: 8d4c61a16faea4fc629b570542e7f29ccc27a5fa
-Build-Depends: libssl-dev, libcurl4-openssl-dev, uuid-dev, libcjson-dev, libmsgpackc2, libmsgpack-dev, libnanomsg, libnanomsg-dev, libnopoll, libtrower-base64, libcimplog, libcjwt, libwrp-c, librdk-logger, libnopoll-dev, libtrower-base64-dev, libcimplog-dev, libcjwt-dev, libwrp-c-dev, linenoise, rbus, librbus-dev, liblog4c-dev, librdk-logger-dev
+Build-Depends: libssl-dev, libcurl4-openssl-dev, uuid-dev, libcjson-dev, libmsgpackc2, libmsgpack-dev, libnanomsg, libnanomsg-dev, libnopoll, libtrower-base64, libcimplog, libcjwt, libwrp-c, librdk-logger, libnopoll-dev, libtrower-base64-dev, libcimplog-dev, libcjwt-dev, libwrp-c-dev, linenoise, rbus, librbus-dev, liblog4c-dev, librdk-logger-dev, libwdmp-c, libwdmp-c-dev
 
 Package: parodus
 Section: net
 Priority: optional
-Depends: rbus, libcimplog, libcjwt, libnanomsg, libnopoll, libtrower-base64, libwrp-c, librdk-logger, ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: XMiDT client coordinator
  parodus is a C implementation of the XMiDT client coordinator. XMiDT
  is a highly scalable, highly available, generic message routing system.

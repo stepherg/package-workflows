@@ -1,0 +1,84 @@
+name: Package libunpriv
+
+on:
+  workflow_dispatch:
+    inputs:
+      upstream_ref:
+        description: 'Upstream tag/branch/commit (default: from control file)'
+        required: false
+        type: string
+  push:
+    paths:
+      - 'packages/libunpriv/**'
+      - '.github/workflows/package-libunpriv.yml'
+      - 'scripts/build-helpers/**'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build:
+    name: Build libunpriv for ${{ matrix.platform }}
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: amd64
+            docker_platform: linux/amd64
+          - platform: arm64
+            docker_platform: linux/arm64
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+      
+      - name: Build package in Docker
+        run: |
+          docker run --rm --platform=${{ matrix.docker_platform }} \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ubuntu:20.04 \
+            bash -c '
+              set -euo pipefail
+              
+              # Install base dependencies
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update -qq
+              apt-get install -y -qq \
+                git \
+                build-essential \
+                autoconf \
+                automake \
+                libtool \
+                pkg-config \
+                file \
+                binutils \
+                dpkg-dev \
+                libcap-dev \
+                libjsoncpp-dev
+              
+              # Source build functions
+              source scripts/build-helpers/build-common.sh
+              
+              # Build package
+              build_package "libunpriv" "${{ matrix.platform }}" "${{ inputs.upstream_ref }}"
+            '
+      
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: libunpriv-${{ matrix.platform }}
+          path: |
+            libunpriv_*.deb
+            libunpriv-dev_*.deb
+            libunpriv-dbg_*.deb
+            libunpriv-dbgsrc_*.deb
+          retention-days: 30
+          if-no-files-found: error

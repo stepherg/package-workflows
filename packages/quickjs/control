@@ -2,11 +2,11 @@ Source: quickjs
 Version: 2025-12-03
 Upstream-URL: https://github.com/bellard/quickjs.git
 Upstream-Ref: e5fd391
+Build-Depends: gcc, make
 
 Package: quickjs
 Architecture: any
-Depends: libc6 (>= 2.17)
-Build-Depends: gcc, make
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Section: interpreters
 Priority: optional
 Homepage: https://bellard.org/quickjs/
@@ -25,7 +25,7 @@ Description: Small and embeddable JavaScript engine
 
 Package: libquickjs-dev
 Architecture: any
-Depends: quickjs (= 2025-12-03)
+Depends: quickjs (= ${version})
 Section: libdevel
 Priority: optional
 Description: Development files for QuickJS

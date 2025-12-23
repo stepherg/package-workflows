@@ -1,0 +1,19 @@
+Source: wdmp-c
+Version: 1.0.0
+Upstream-URL: https://github.com/xmidt-org/wdmp-c
+Upstream-Ref: c7e00d1f159ef8609e7789430d18508fb39d66d3
+Build-Depends: libcjson-dev, libcimplog, libcimplog-dev
+
+Package: libwdmp-c
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: WebPA Data Model Parser library
+ C implementation of the WebPA Data Model Parser library.
+ Part of the XMiDT project for device management.
+
+Package: libwdmp-c-dev
+Architecture: any
+Depends: libwdmp-c (= ${version}), ${misc:Depends}
+Description: Development files for wdmp-c
+ Development files (headers and static library) for the WebPA
+ Data Model Parser library.
