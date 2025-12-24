@@ -1,0 +1,30 @@
+Source: breakpad
+Version: 2024.02.16
+Upstream-URL: https://github.com/google/breakpad.git
+Upstream-Ref: v2024.02.16
+Build-Depends: build-essential, autoconf, automake, libtool, pkg-config
+
+Package: breakpad
+Section: libs
+Priority: optional
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Google Breakpad crash reporting system - runtime
+ Breakpad is a set of client and server components which implement a
+ crash-reporting system. The client libraries can be embedded in
+ applications to capture crash dumps when they crash, and the server
+ components process those crash dumps to produce stack traces and other
+ debugging information.
+ .
+ This package contains the runtime libraries and tools.
+
+Package: libbreakpad-dev
+Section: libdevel
+Priority: optional
+Depends: breakpad (= ${version})
+Description: Google Breakpad crash reporting system - development files
+ Breakpad is a set of client and server components which implement a
+ crash-reporting system. The client libraries can be embedded in
+ applications to capture crash dumps when they crash.
+ .
+ This package contains the development headers, static libraries, and
+ pkg-config files needed to build applications using Breakpad.

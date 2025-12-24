@@ -204,8 +204,9 @@ def build_package(package_name: str, platform: str, timeout_seconds: int, output
         f"build_package {package_name} {platform} '' {skip_source_flag}"
     )
 
+    # timeout_cmd, str(timeout_seconds),
+
     cmd = [
-        timeout_cmd, str(timeout_seconds),
         "bash", "-c", bash_script
     ]
 

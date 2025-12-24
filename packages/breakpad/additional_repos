@@ -1,0 +1,6 @@
+# Additional repositories to clone into the breakpad source tree
+# Format: <target-path> <git-url> <ref>
+# Paths are relative to the source-breakpad directory
+
+# Linux System Call Support library - required for breakpad on Linux
+src/third_party/lss https://chromium.googlesource.com/linux-syscall-support v2024.02.01

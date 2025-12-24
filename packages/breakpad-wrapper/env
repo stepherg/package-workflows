@@ -1,0 +1,4 @@
+export CXXFLAGS+="\
+   -I/usr/include/breakpad"
+
+export LDFLAGS+=" -lbreakpad_client"

@@ -1,8 +1,8 @@
 diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
-index cd74d7f..e90b86b 100644
+index cd74d7f..358c86a 100644
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
-@@ -56,6 +56,8 @@ target_link_libraries (parodus
+@@ -56,8 +56,14 @@ target_link_libraries (parodus
      -lcjwt
      -lpthread
      -lrt
@@ -10,4 +10,23 @@ index cd74d7f..e90b86b 100644
 +    -lrdkloggers
      )
  
++if(INCLUDE_BREAKPAD)
++target_link_libraries (parodus -lbreakpadwrapper)
++endif(INCLUDE_BREAKPAD)
++
  if (FEATURE_DNS_QUERY)
+ target_link_libraries (parodus -lucresolv -lresolv)
+ endif (FEATURE_DNS_QUERY)
+diff --git a/src/conn_interface.c b/src/conn_interface.c
+index 14ac963..18bb532 100644
+--- a/src/conn_interface.c
++++ b/src/conn_interface.c
+@@ -42,6 +42,8 @@
+ #include <ucresolv_log.h>
+ #endif
+ #include <time.h>
++#include <rdk_logger.h>
++
+ 
+ /*----------------------------------------------------------------------------*/
+ /*                                   Macros                                   */

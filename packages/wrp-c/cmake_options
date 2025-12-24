@@ -1,2 +1,3 @@
 -DBUILD_YOCTO=true
 -DMAIN_PROJ_BUILD=ON
+-DCMAKE_C_FLAGS=" -Wno-error=maybe-uninitialized"

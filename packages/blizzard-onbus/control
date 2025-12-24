@@ -1,0 +1,15 @@
+Source: blizzard-onbus
+Version: 1.0.0
+Upstream-URL: https://github.com/rdk-gdcs/BlizzardOnBus.git
+Upstream-Ref: HEAD
+Build-Depends: build-essential, cmake, pkg-config, blizzard-cpp-sdk, libblizzard-cpp-sdk-dev, libspdlog-dev, blizzard-rdk, libcjson-dev, libcurl4-openssl-dev, liblog4c3, libmsgpackc2, linenoise, rbus, librbus-dev, librdk-logger, librdk-logger-dev
+
+Package: blizzard-onbus
+Section: net
+Priority: optional
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Blizzard Bus Bridge
+ A unified bridge that exposes Blizzard SDK providers on various bus systems.
+ Supports both RBus (rbus) and ubus with compile-time backend selection.
+ .
+ This package contains the bus bridge binary and init scripts.

@@ -1,0 +1,27 @@
+Source: hermesfs
+Version: 0.0.3
+Upstream-URL: git@github.com:rdk-gdcs/HermesFS.git
+Upstream-Ref: ecbe65ad8c3a90c26141e4b0bde15724ad288d1b
+Build-Depends: cargo, rustc, pkg-config
+
+Package: hermesfs
+Section: net
+Priority: optional
+Architecture: any
+Maintainer: Package Workflows <packages@example.com>
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: HermesFS is a Rust-based FUSE (Filesystem in Userspace) program that provides 
+  efficient and flexible file system functionalities. This program is designed to abstract the 
+  complexities of streaming data to the cloud, and giving application developers a simple file 
+  based interface to write data. In embedded systems, you may have large development groups 
+  working on various components throughout the system. Application developers may want to add the 
+  ability to stream captures or other data from their application to the cloud for analysis. 
+  The developers shouldn't need to worry about how to stream that data, this is where HermesFS makes 
+  dreams come true. The application developers can simply write to a file, and the HermesFS 
+  implementation will take care of the rest, ensuring that the data is streamed to the cloud as 
+  intended by the platform maintainers. This allows the application developers to focus on their 
+  core functionality, while the platform maintainers can ensure that the data is streamed correctly 
+  and efficiently.
+ .
+ This package provides the binary for running HermesFS
+ on devices.

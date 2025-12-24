@@ -46,6 +46,7 @@ project-root/
 │       ├── build_system         # "make" or "cmake" (optional, auto-detected)
 │       ├── cmake_options        # CMake-specific flags (optional)
 │       ├── make_options         # Make-specific flags (optional)
+│       ├── additional_repos     # Additional git repos to clone (optional)
 │       ├── patches/             # Source patches (optional)
 │       │   └── 001-fix.patch
 │       ├── postinst             # Post-installation script (optional)
@@ -462,6 +463,65 @@ git diff > /tmp/fix.patch
 
 # Or without git:
 diff -Naur original/ modified/ > fix.patch
+```
+
+### 5. Additional Repository Cloning
+
+Some projects require additional git repositories to be cloned into specific subdirectories (e.g., third-party dependencies, git submodules). The build system supports this through the `additional_repos` file.
+
+#### Additional Repos File Format
+
+Create a file at `packages/<project>/additional_repos` with one repository per line:
+
+```
+<target-path> <git-url> <ref>
+```
+
+**Format details:**
+- `target-path`: Relative path from the source directory where the repo should be cloned
+- `git-url`: Full git URL (supports https:// and git://)
+- `ref`: Git ref to checkout (tag, branch, or commit hash)
+- Lines starting with `#` are comments
+- Empty lines are ignored
+
+#### Example: Breakpad with Linux System Call Support
+
+```
+# packages/breakpad/additional_repos
+
+# Linux System Call Support library - required for breakpad on Linux
+src/third_party/lss https://chromium.googlesource.com/linux-syscall-support v2024.02.01
+```
+
+This will execute:
+```bash
+cd source-breakpad
+git clone -b v2024.02.01 https://chromium.googlesource.com/linux-syscall-support src/third_party/lss
+```
+
+#### Processing Order
+
+Additional repositories are cloned after patches are applied:
+1. Clone main upstream repository
+2. Apply patches from `patches/` directory
+3. Clone additional repositories from `additional_repos` file
+4. Build the project
+
+#### Multiple Additional Repositories
+
+You can specify multiple repositories:
+
+```
+# packages/myproject/additional_repos
+
+# Third-party dependency 1
+vendor/lib1 https://github.com/org/lib1.git v1.0.0
+
+# Third-party dependency 2
+vendor/lib2 https://github.com/org/lib2.git main
+
+# Internal submodule
+internal/tools https://internal.git.server/tools.git abc123def
 ```
 
 ## Package Creation Process

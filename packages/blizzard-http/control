@@ -1,0 +1,15 @@
+Source: blizzard-http
+Version: 1.0.0
+Upstream-URL: https://github.com/rdk-gdcs/BlizzardHTTP.git
+Upstream-Ref: HEAD
+Build-Depends: build-essential, cmake, pkg-config, blizzard-cpp-sdk, libblizzard-cpp-sdk-dev, libcurl4-openssl-dev, blizzard-rdk
+
+Package: blizzard-http
+Section: net
+Priority: optional
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Blizzard HTTP Provider
+ HTTP provider implementation for the Blizzard framework,
+ enabling HTTP-based communication in Blizzard applications.
+ .
+ This package contains the HTTP provider binary and configuration files.

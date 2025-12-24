@@ -2,7 +2,7 @@ Source: parodus
 Version: 2.10.0
 Upstream-URL: https://github.com/xmidt-org/parodus.git
 Upstream-Ref: 8d4c61a16faea4fc629b570542e7f29ccc27a5fa
-Build-Depends: libssl-dev, libcurl4-openssl-dev, uuid-dev, libcjson-dev, libmsgpackc2, libmsgpack-dev, libnanomsg, libnanomsg-dev, libnopoll, libtrower-base64, libcimplog, libcjwt, libwrp-c, librdk-logger, libnopoll-dev, libtrower-base64-dev, libcimplog-dev, libcjwt-dev, libwrp-c-dev, linenoise, rbus, librbus-dev, liblog4c-dev, librdk-logger-dev, libwdmp-c, libwdmp-c-dev
+Build-Depends: libssl-dev, libcurl4-openssl-dev, uuid-dev, libcjson-dev, libmsgpackc2, libmsgpack-dev, libnanomsg, libnanomsg-dev, libnopoll, libtrower-base64, libcimplog, libcjwt, libwrp-c, librdk-logger, libnopoll-dev, libtrower-base64-dev, libcimplog-dev, libcjwt-dev, libwrp-c-dev, linenoise, rbus, librbus-dev, liblog4c-dev, librdk-logger-dev, libwdmp-c, libwdmp-c-dev,  breakpad-wrapper, libbreakpad-wrapper-dev
 
 Package: parodus
 Section: net

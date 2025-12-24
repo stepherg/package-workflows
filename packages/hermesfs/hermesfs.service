@@ -1,0 +1,12 @@
+[Unit]
+Description=HermesFS
+DefaultDependencies=no
+
+[Service]
+ExecStart=/usr/bin/hermesfs /etc/hermesfs.d/hermes.yml
+ExecStopPost=/bin/umount /tmp/hermes
+Restart=always
+Type=simple
+
+[Install]
+WantedBy=basic.target

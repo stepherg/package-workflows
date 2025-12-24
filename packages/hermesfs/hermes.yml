@@ -1,0 +1,33 @@
+---
+mount_point: /tmp/hermes         # Where to mount the filesystem.
+connectivity:                    # Cloud streaming configuration (optional).
+  xmidt:                         # Configuration for streaming through Xmidt (optional).
+    enabled: true                # Enable Xmidt connectivity (optional, default: false).
+    service_name: "HermesFS"     # Service name for Xmidt client (optional, default: "HermesFS").
+    client_port: 9901            # Port for Xmidt client connection (optional, default: 9901).
+    msg_channel_size: 50         # Size of internal message channel for queuing messages for xmidt client (optional, default: 50).
+    max_data_rate: 10240         # Maximum data rate for Xmidt client (optional, default: 10240).
+files:                           # List of files to create.
+  - name: syslog                 # Name of the file within the FUSE filesystem.
+    uid: 0                       # User ID for file ownership.
+    gid: 0                       # Group ID for file ownership.
+    permissions: 0o777           # File permissions (in octal, think chmod).
+    single_use: false            # If true, the file is deleted after writer is closed (optional, default: false).
+    max_data_write:              # Maximum data that can be written to the file (optional).
+      max_bytes: 10485760        # Maximum total bytes that can be written to the file.
+      allow_partial: false       # If true, partial writes are allowed when max_bytes is reached. If false, writes that would exceed max_bytes will fail.
+    max_chunk_write:             # Maximum size of single write operation (optional). If set, writes larger than this will be split into multiple writes.
+      max_bytes: 4096            # Maximum size of single write operation in bytes.
+    type:                        # Type of file.
+      xmidt:                     # Xmidt-specific file type (requires connectivity.xmidt.enabled: true).
+        event_name: ccs          # Event name to use in xmidt messages (xmidt destination = "event:<event_name>/<file_name>").
+        mode: event              # Streaming mode: event or file_transfer. Event mode just sends a normal xmidt event message, file_transfer mode sends events with special headers for file transfer.
+  - name: simple_file
+    uid: 0
+    gid: 0
+    permissions: 0o777
+    single_use: false
+    type:
+      xmidt:
+        event_name: HermesFS
+        mode: file_transfer

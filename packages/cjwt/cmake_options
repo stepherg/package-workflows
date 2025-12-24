@@ -1,3 +1,3 @@
 -DBUILD_TESTING=OFF
 -DBUILD_YOCTO=true
--DCMAKE_C_FLAGS=" -I/usr/include/cjson -I/usr/include/trower-base64"
+-DCMAKE_C_FLAGS=" -I/usr/include/cjson -I/usr/include/trower-base64 -Wno-error=deprecated-declarations"

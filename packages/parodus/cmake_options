@@ -1,7 +1,7 @@
 -DBUILD_TESTING=OFF
 -DBUILD_YOCTO=true
 -DENABLE_WEBCFGBIN=true
--DWAN_FAILOVER_SUPPORTED=true 
+-DWAN_FAILOVER_SUPPORTED=true
 -DCMAKE_C_FLAGS="-I/usr/include/cjson 
 -I/usr/include/trower-base64 
 -I/usr/include/nopoll 
@@ -12,4 +12,6 @@
 -I/usr/include/rbus 
 -I/usr/include/rtmessage 
 -Wno-error=all -Wno-missing-field-initializers"
+
+# -DINCLUDE_BREAKPAD=true
 

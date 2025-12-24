@@ -190,6 +190,70 @@ apply_patches() {
     log_success "All patches applied successfully"
 }
 
+# Clone additional repositories into subdirectories
+# Reads from packages/<project>/additional_repos file
+# Format: <target-path> <git-url> <ref>
+# Example: src/third_party/lss https://chromium.googlesource.com/linux-syscall-support v2024.02.01
+# Args: $1 = project name
+clone_additional_repos() {
+    local project=$1
+    local repos_file="/workspace/packages/$project/additional_repos"
+    
+    if [ ! -f "$repos_file" ]; then
+        log_info "No additional_repos file found, skipping additional repository clones"
+        return 0
+    fi
+    
+    log_info "Processing additional repository clones from $repos_file"
+    
+    local line_number=0
+    while IFS= read -r line || [ -n "$line" ]; do
+        line_number=$((line_number + 1))
+        
+        # Skip empty lines and comments
+        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+        
+        # Parse the line: target_path url ref
+        read -r target_path url ref <<< "$line"
+        
+        if [ -z "$target_path" ] || [ -z "$url" ] || [ -z "$ref" ]; then
+            log_error "Invalid format at line $line_number: $line"
+            log_error "Expected format: <target-path> <git-url> <ref>"
+            return 1
+        fi
+        
+        log_info "Cloning into $target_path from $url at ref $ref"
+        
+        # Create parent directory if needed
+        local parent_dir=$(dirname "$target_path")
+        if [ ! -d "$parent_dir" ]; then
+            mkdir -p "$parent_dir"
+            log_info "Created parent directory: $parent_dir"
+        fi
+        
+        # Remove existing directory if present
+        if [ -d "$target_path" ]; then
+            log_warning "Removing existing directory: $target_path"
+            rm -rf "$target_path"
+        fi
+        
+        # Try shallow clone first
+        if git clone --depth 1 --branch "$ref" "$url" "$target_path" 2>/dev/null; then
+            log_success "Cloned $url at ref $ref into $target_path"
+        else
+            # Fallback: full clone and checkout
+            log_warning "Shallow clone failed, trying full clone..."
+            git clone "$url" "$target_path"
+            cd "$target_path"
+            git checkout "$ref"
+            cd - > /dev/null
+            log_success "Cloned $url and checked out $ref into $target_path"
+        fi
+    done < "$repos_file"
+    
+    log_success "All additional repositories cloned successfully"
+}
+
 # Build using CMake
 # Args: $1 = project name, $2 = architecture
 build_cmake() {
@@ -201,7 +265,7 @@ build_cmake() {
     # Read custom cmake options if available
     local custom_options=""
     if [ -f "/workspace/packages/$project/cmake_options" ]; then
-        custom_options=$(cat "/workspace/packages/$project/cmake_options" | tr '\n' ' ' | tr -s ' ')
+        custom_options=$(cat "/workspace/packages/$project/cmake_options" | grep -v '^#' | tr '\n' ' ' | tr -s ' ')
         log_info "Using custom CMake options: $custom_options"
     fi
     local static_options="-DCMAKE_BUILD_TYPE=Release \
@@ -878,16 +942,11 @@ create_package_from_section() {
     
     # Determine which files belong to this package based on common patterns
     if [[ "$pkg_name" == *"-dev" ]]; then
-        # Development package: headers, static libraries, pkg-config files
+        # Development package: headers, static libraries, pkg-config files, cmake files
         [ -d "$staging_dir/usr/include" ] && cp -r "$staging_dir/usr/include" "$pkg_dir/usr/" 2>/dev/null || true
-        if [ -d "$staging_dir/usr/lib" ]; then
-            mkdir -p "$pkg_dir/usr/lib"
-            # Copy static libraries only
-            find "$staging_dir/usr/lib" -name "*.a" | while read f; do
-                cp -a "$f" "$pkg_dir/usr/lib/" 2>/dev/null || true
-            done
-            # Copy pkgconfig directory
-            [ -d "$staging_dir/usr/lib/pkgconfig" ] && cp -r "$staging_dir/usr/lib/pkgconfig" "$pkg_dir/usr/lib/" 2>/dev/null || true
+        [ -d "$staging_dir/usr/lib" ] && cp -r "$staging_dir/usr/lib" "$pkg_dir/usr/" 2>/dev/null || true
+        if [ -d "$pkg_dir/usr/lib" ]; then
+           find "$pkg_dir/usr/lib" -name "*.so*" | xargs rm -f 2>/dev/null || true
         fi
     elif [[ "$pkg_name" == *"-dbg" ]] || [[ "$pkg_name" == *"-debug" ]]; then
         # Debug package: debug symbols
@@ -1379,6 +1438,9 @@ build_package() {
         cd /workspace
         cd "source-$project"
         apply_patches "$project"
+        
+        # Clone additional repositories
+        clone_additional_repos "$project"
     else
         # Verify source directory exists
         if [ ! -d "source-$project" ]; then
@@ -1446,6 +1508,6 @@ build_package() {
 
 # Export functions for use in workflows
 export -f log_info log_success log_warning log_error
-export -f detect_build_system clone_upstream apply_patches
+export -f detect_build_system clone_upstream apply_patches clone_additional_repos
 export -f build_cmake build_make build_autotools build_meson build_cargo
 export -f detect_dependencies create_deb build_package

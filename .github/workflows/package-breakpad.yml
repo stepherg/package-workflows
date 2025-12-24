@@ -1,39 +1,35 @@
-name: Package cimplog
+name: Package breakpad
 
 on:
   push:
-    branches: [ main ]
     paths:
-      - 'packages/cimplog/**'
-      - 'scripts/**'
-      - '.github/workflows/package-cimplog.yml'
-  pull_request:
-    branches: [ main ]
-    paths:
-      - 'packages/cimplog/**'
-      - 'scripts/**'
-      - '.github/workflows/package-cimplog.yml'
-  workflow_dispatch:
+      - 'packages/breakpad/**'
+      - '.github/workflows/package-breakpad.yml'
+      - 'scripts/build-helpers/**'
+
+permissions:
+  contents: write
+  packages: write
 
 jobs:
   build:
+    name: Build breakpad for ${{ matrix.platform }}
+    runs-on: ubuntu-22.04
     strategy:
+      fail-fast: false
       matrix:
         platform: [arm64, amd64]
         include:
-          - platform: arm64
-            docker_platform: linux/arm64
           - platform: amd64
             docker_platform: linux/amd64
-    
-    runs-on: ubuntu-latest
-    name: Build cimplog for ${{ matrix.platform }}
+          - platform: arm64
+            docker_platform: linux/arm64
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Set up QEMU for multi-arch builds
+      
+      - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
           platforms: linux/amd64,linux/arm64
@@ -51,8 +47,8 @@ jobs:
               source scripts/build-helpers/build-common.sh
               
               # Install build dependencies from control file
-              install_build_dependencies cimplog
+              install_build_dependencies breakpad
 
               # Build package
-              build_package cimplog ${{ matrix.platform }}
+              build_package "breakpad" "${{ matrix.platform }}" "${{ inputs.upstream_ref }}"
             '

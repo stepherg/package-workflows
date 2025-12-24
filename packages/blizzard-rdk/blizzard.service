@@ -1,0 +1,14 @@
+[Unit]
+Description=Blizzard
+After=parodus.service
+
+[Service]
+Type=simple
+Environment=PARODUS_TRANSPORT=1
+ExecStartPre=/bin/sleep 30
+ExecStart=/usr/bin/blizzard-rdk
+Restart=always
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target

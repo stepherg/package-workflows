@@ -1,0 +1,5 @@
+# Additional repositories to clone into the blizzard-cpp-sdk source tree
+# Format: <target-path> <git-url> <ref>
+
+# Blizzard Protocol Buffers definitions - required dependency
+third_party/BlizzardProtobufs https://github.com/rdk-gdcs/BlizzardProtobufs.git main

@@ -1,0 +1,13 @@
+[Unit]
+Description=Blizzard time
+After=blizzard.service
+
+[Service]
+Type=simple
+ExecStartPre=/bin/sleep 17
+ExecStart=/usr/bin/time_provider
+Restart=always
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target

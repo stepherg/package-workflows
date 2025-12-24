@@ -1,0 +1,16 @@
+Source: blizzard-rdk
+Version: 0.0.1
+Upstream-URL: https://github.com/rdk-gdcs/BlizzardRDK.git
+Upstream-Ref: HEAD
+Build-Depends: build-essential, cargo, rustc, libprotobuf-dev, protobuf-compiler, grpc++, libgrpc++-dev, libspdlog-dev
+
+Package: blizzard-rdk
+Section: net
+Priority: optional
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Blizzard RDK Implementation
+ Blizzard RDK is the implementation of the Blizzard Framework
+ specific to Reference Design Kit (RDK) devices. Written in Rust,
+ it provides the core functionality for Blizzard services on RDK platforms.
+ .
+ This package contains the Blizzard RDK binary and utilities.

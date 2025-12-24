@@ -1,0 +1,28 @@
+Source: breakpad-wrapper
+Version: 1.0.0
+Upstream-URL: https://github.com/rdkcentral/breakpad_wrapper.git
+Upstream-Ref: 1.0.0
+Build-Depends: breakpad, libbreakpad-dev
+
+Package: breakpad-wrapper
+Section: libs
+Priority: optional
+Depends: breakpad, ${shlibs:Depends}, ${misc:Depends}
+Description: RDK Breakpad wrapper library - runtime
+ A C++ wrapper library for Google Breakpad crash reporting system.
+ This wrapper simplifies the integration of Breakpad into RDK applications
+ by providing a simplified interface for exception handling and crash dump
+ generation.
+ .
+ This package contains the runtime library.
+
+Package: libbreakpad-wrapper-dev
+Section: libdevel
+Priority: optional
+Depends: breakpad-wrapper (= ${version})
+Description: RDK Breakpad wrapper library - development files
+ A C++ wrapper library for Google Breakpad crash reporting system.
+ This wrapper simplifies the integration of Breakpad into RDK applications.
+ .
+ This package contains the development headers and static libraries needed
+ to build applications using the breakpad wrapper library.

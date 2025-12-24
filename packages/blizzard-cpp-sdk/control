@@ -1,0 +1,28 @@
+Source: blizzard-cpp-sdk
+Version: 1.0.0
+Upstream-URL: https://github.com/rdk-gdcs/BlizzardCppSdk.git
+Upstream-Ref: main
+Build-Depends: libprotobuf-dev, protobuf-compiler, grpc++, libgrpc++-dev, libspdlog-dev
+
+Package: blizzard-cpp-sdk
+Section: libs
+Priority: optional
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Blizzard C++ SDK library - runtime
+ Blizzard C++ SDK is a library for building applications that communicate
+ with the Blizzard platform. It provides transport mechanisms including
+ gRPC and WebSocket support, along with protocol buffer integration for
+ efficient data serialization.
+ .
+ This package contains the runtime libraries.
+
+Package: libblizzard-cpp-sdk-dev
+Section: libdevel
+Priority: optional
+Depends: blizzard-cpp-sdk (= ${version})
+Description: Blizzard C++ SDK library - development files
+ Blizzard C++ SDK is a library for building applications that communicate
+ with the Blizzard platform.
+ .
+ This package contains the development headers, CMake configuration files,
+ and static libraries needed to build applications using the Blizzard C++ SDK.
