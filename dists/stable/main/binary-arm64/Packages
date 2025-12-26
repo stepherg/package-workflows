@@ -828,10 +828,10 @@ Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 88
 Depends: ucode-quickjs (= 1.0.0)
 Filename: pool/main/l/libucode-quickjs-dev/libucode-quickjs-dev_1.0.0_arm64.deb
-Size: 13652
-MD5sum: f1df0b56d5d136aeb4507bffb0913572
-SHA1: 78ad3a09b3e5d7219f49a0e72e9a1a3444fdb70d
-SHA256: 1ffaf0f76b52abcf6ebc9f9dcbd336436403aae9c3c73951cbd78c1c83317dde
+Size: 13650
+MD5sum: f91ca796f5d8479e7e5cfd7db9c03261
+SHA1: a1945cd4e8d0a42439b0dba7cccf15a94dde9e48
+SHA256: 4c9014b48e9f283cac1f8ba402b73836f5f5b5ef0613c9c6f5373470b022eb26
 Section: libdevel
 Priority: optional
 Description: ucode JavaScript interpreter - development files
@@ -1214,12 +1214,12 @@ Version: 1.0.0
 Architecture: arm64
 Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 3620
-Depends: libc6 (>= 2.34),libcurl4t64 (>= 7.16.2),libmsgpackc2 (>= 2.1.0),libnanomsg (>= 1.2.2),libssl3t64 (>= 3.0.0),libubox (>= 1.0.0),libyaml-0-2,rbus (>= 2.7.0),utopia (>= 1.4.0),zlib1g (>= 1:1.1.4)
+Depends: quickjs, libc6 (>= 2.34),libcurl4t64 (>= 7.16.2),libmsgpackc2 (>= 2.1.0),libnanomsg (>= 1.2.2),libssl3t64 (>= 3.0.0),libubox (>= 1.0.0),libyaml-0-2,rbus (>= 2.7.0),utopia (>= 1.4.0),zlib1g (>= 1:1.1.4)
 Filename: pool/main/u/ucode-quickjs/ucode-quickjs_1.0.0_arm64.deb
-Size: 858192
-MD5sum: 21d60367d17163f114719c3886d82945
-SHA1: 2febca4c5f0249376635543ab8b223efbc643cdf
-SHA256: 371cb4b230f2fd67c5c152c2fed78359f21406ba4863f73a1d4f8b4e28e8a4d8
+Size: 858208
+MD5sum: 9e715651e09d54cda59834cfe4781ab0
+SHA1: 208c6067872bac7e072a443d69fa1132b9ba98bf
+SHA256: c3d1ea60ddd991dd2d975a81a5c92ac597be9119f4310fcb12455ae79673d9dc
 Section: interpreters
 Priority: optional
 Description: ucode JavaScript interpreter with QuickJS backend
@@ -1235,10 +1235,10 @@ Maintainer: Package Workflows <packages@example.com>
 Installed-Size: 1424
 Depends: ucode-quickjs (= 1.0.0)
 Filename: pool/main/u/ucode-quickjs-dbg/ucode-quickjs-dbg_1.0.0_arm64.deb
-Size: 458374
-MD5sum: 83064add384e79ced9525f88be65162e
-SHA1: 190fae3233a0aff99cdbac6091df9f7361842c2c
-SHA256: 46f96f8791651634ee7f9f605da95e6c2ba6fba56d54a1d069b7833ed205d0a0
+Size: 458510
+MD5sum: 0ff85619290f5db6384561e46e8929e3
+SHA1: 86bba395dc7f2508714e86219660e9a840693104
+SHA256: e37ba2b71189ecc403a5ff390d3c1cc285920abb4f59cf734b267a363f0f1f05
 Section: debug
 Priority: optional
 Description: Debug symbols for ucode-quickjs
