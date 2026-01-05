@@ -1,5 +1,5 @@
-source-*/
+source/
 *.deb
 apt-repo/
-temp/
+temp/*
 

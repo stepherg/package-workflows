@@ -2,7 +2,7 @@ Source: component-registry
 Version: 1.0.0
 Upstream-URL: https://github.com/rdkcentral/component-registry.git
 Upstream-Ref: 1.0.0
-Build-Depends: libcjson-dev, libmsgpack-dev, libtrower-base64, libtrower-base64-dev, libsafec, libsafec-dev, librdk-logger, librdk-logger-dev, libccsp-common, libccsp-common-dev, linenoise, rbus, librbus-dev, libxml2-dev, libsyswrapper, libsyswrapper-dev, telemetry, telemetry-dev, utopia, utopia-dev
+Build-Depends: libcjson-dev, libmsgpack-dev, libtrower-base64, libsafec, librdk-logger, libccsp-common, rbus, libxml2-dev, libsyswrapper, telemetry, utopia
 
 Package: component-registry
 Section: misc

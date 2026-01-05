@@ -1,0 +1,46 @@
+diff --git a/Makefile b/Makefile
+index dcbbf7e..3cfe261 100644
+--- a/Makefile
++++ b/Makefile
+@@ -220,6 +220,9 @@ PROGS+=libquickjs.a
+ ifdef CONFIG_LTO
+ PROGS+=libquickjs.lto.a
+ endif
++ifdef CONFIG_SHARED_LIBS
++PROGS+=libquickjs.so
++endif
+ 
+ # examples
+ ifeq ($(CROSS_PREFIX),)
+@@ -311,6 +314,14 @@ endif # CONFIG_LTO
+ libquickjs.fuzz.a: $(patsubst %.o, %.fuzz.o, $(QJS_LIB_OBJS))
+ 	$(AR) rcs $@ $^
+ 
++# Build shared library with -fPIC objects
++ifdef CONFIG_SHARED_LIBS
++QJS_LIB_PIC_OBJS=$(patsubst %.o, %.pic.o, $(QJS_LIB_OBJS))
++
++libquickjs.so: $(QJS_LIB_PIC_OBJS)
++	$(CC) $(LDFLAGS) -shared -o $@ $^ $(LIBS)
++endif # CONFIG_SHARED_LIBS
++
+ repl.c: $(QJSC) repl.js
+ 	$(QJSC) -s -c -o $@ -m repl.js
+ 
+@@ -372,10 +383,13 @@ install: all
+ 	mkdir -p "$(DESTDIR)$(PREFIX)/bin"
+ 	$(STRIP) qjs$(EXE) qjsc$(EXE)
+ 	install -m755 qjs$(EXE) qjsc$(EXE) "$(DESTDIR)$(PREFIX)/bin"
+-	mkdir -p "$(DESTDIR)$(PREFIX)/lib/quickjs"
+-	install -m644 libquickjs.a "$(DESTDIR)$(PREFIX)/lib/quickjs"
++	mkdir -p "$(DESTDIR)$(PREFIX)/lib"
++	install -m644 libquickjs.a "$(DESTDIR)$(PREFIX)/lib"
+ ifdef CONFIG_LTO
+-	install -m644 libquickjs.lto.a "$(DESTDIR)$(PREFIX)/lib/quickjs"
++	install -m644 libquickjs.lto.a "$(DESTDIR)$(PREFIX)/lib"
++endif
++ifdef CONFIG_SHARED_LIBS
++	install -m755 libquickjs.so "$(DESTDIR)$(PREFIX)/lib"
+ endif
+ 	mkdir -p "$(DESTDIR)$(PREFIX)/include/quickjs"
+ 	install -m644 quickjs.h quickjs-libc.h "$(DESTDIR)$(PREFIX)/include/quickjs"

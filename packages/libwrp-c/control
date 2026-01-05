@@ -1,0 +1,30 @@
+Source: libwrp-c
+Version: 1.1.3
+Upstream-URL: https://github.com/xmidt-org/wrp-c.git
+Upstream-Ref: 9587e8db33dbbfcd9b78ef66cc2eaf16dfb9afcf
+Build-Depends: libmsgpack-dev, libmsgpackc2, libtrower-base64, libcimplog
+
+Package: libwrp-c
+Section: libs
+Priority: optional
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: C implementation of Web Routing Protocol - runtime
+ wrp-c is a C implementation of the Web Routing Protocol. It provides
+ a simple library that converts between C structures and msgpack encoded
+ structures, with helper functions for working with WRP messages.
+ .
+ The library handles serialization and deserialization of WRP protocol
+ messages used in the Xmidt ecosystem for device communication and
+ management.
+ .
+ This package contains the runtime library.
+
+Package: libwrp-c-dev
+Section: libdevel
+Priority: optional
+Depends: libwrp-c (= ${version})
+Description: C implementation of Web Routing Protocol - development files
+ wrp-c is a C implementation of the Web Routing Protocol. It provides
+ a simple library for working with WRP messages.
+ .
+ This package contains headers and development files.

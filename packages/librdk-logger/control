@@ -1,0 +1,26 @@
+Source: librdk-logger
+Version: 2.4.0
+Upstream-URL: https://github.com/rdkcentral/rdk_logger.git
+Upstream-Ref: v2.4.0
+Build-Depends: liblog4c-dev
+
+Package: librdk-logger
+Section: libs
+Priority: optional
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: RDK Logger - Runtime library
+ RDK Logger is a general-purpose logging mechanism for RDK components.
+ It supports multiple log levels and modules, with log levels configured
+ via a configuration file (debug.ini). Each module can have its own log
+ level, and these can be changed at runtime using the provided CLI utility.
+ .
+ This package contains the runtime library and configuration files.
+
+Package: librdk-logger-dev
+Section: libdevel
+Priority: optional
+Depends: librdk-logger (= ${version})
+Description: RDK Logger - Development files
+ RDK Logger is a general-purpose logging mechanism for RDK components.
+ .
+ This package contains the development headers and static libraries.

@@ -2,7 +2,7 @@ Source: rbus-elements
 Version: 1.0.0
 Upstream-URL: https://github.com/stepherg/rbus-elements.git
 Upstream-Ref: v1.0.1
-Build-Depends: libjansson-dev, libcjson-dev, libmsgpack-dev, linenoise, rbus, librbus-dev
+Build-Depends: libjansson-dev, libcjson-dev, libmsgpack-dev, rbus
 
 Package: rbus-elements
 Section: utils

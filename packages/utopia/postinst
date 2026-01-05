@@ -4,20 +4,27 @@ set -e
 case "$1" in
     configure)
         # Create persistent storage directory
-        mkdir -p /nvram
-        chmod 755 /nvram
-        ln -sf /usr/bin/syscfg /usr/bin/syscfg_create
-        touch /nvram/syscfg.db
-        /usr/bin/syscfg_create -f /nvram/syscfg.db
-        ;;
+        if [ ! -d /nvram ]; then
+            mkdir -p /nvram
+        fi
+
+        if [ ! -f /nvram/syscfg.db ]; then
+            touch /nvram/syscfg.db
+        fi
+
+        if [ ! -f /usr/bin/syscfg_create ]; then
+            ln -sf /usr/bin/syscfg /usr/bin/syscfg_create
+            /usr/bin/syscfg_create -f /nvram/syscfg.db
+        fi
+    ;;
     
     abort-upgrade|abort-remove|abort-deconfigure)
-        ;;
+    ;;
     
     *)
         echo "postinst called with unknown argument \`$1'" >&2
         exit 1
-        ;;
+    ;;
 esac
 
 exit 0

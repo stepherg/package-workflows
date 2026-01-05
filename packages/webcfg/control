@@ -2,7 +2,7 @@ Source: webcfg
 Version: 0.0.1
 Upstream-URL: https://github.com/xmidt-org/webcfg
 Upstream-Ref: 4cf4c32cc73009ea57a219b2d5f1e931c425c105
-Build-Depends: libcjson-dev, libcurl4-openssl-dev, libmsgpack-dev, uuid-dev, linenoise, rbus,librbus-dev, libcimplog, libcimplog-dev, libtrower-base64, libtrower-base64-dev, libwdmp-c, libwdmp-c-dev, libwrp-c, libwrp-c-dev, libcpeabs, libcpeabs-dev
+Build-Depends: libcjson-dev, libcurl4-openssl-dev, libmsgpack-dev, uuid-dev, rbus, libcimplog, libtrower-base64, libwdmp-c, libwrp-c, libcpeabs
 
 Package: webcfg
 Architecture: any
@@ -10,12 +10,6 @@ Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Webconfig client implementation
  webcfg is the client implementation of webconfig for XMiDT.
  It provides configuration management capabilities for RDK devices.
-
-Package: libwebcfg
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Webconfig library
- Shared library for webconfig client implementation.
 
 Package: libwebcfg-dev
 Architecture: any

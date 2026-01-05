@@ -1,0 +1,29 @@
+Source: libnopoll
+Version: 1.0.4
+Upstream-URL: https://github.com/Comcast/nopoll.git
+Upstream-Ref: 1.0.4
+Build-Depends: libssl-dev
+
+Package: libnopoll
+Section: libs
+Priority: optional
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: WebSocket library - runtime
+ noPoll is a OpenSource WebSocket implementation (RFC 6455), written in
+ ANSI C, that allows building pure WebSocket solutions or to provide
+ WebSocket support to existing TCP oriented applications. It provides
+ both client and server API.
+ .
+ This package contains the runtime library.
+
+Package: libnopoll-dev
+Section: libdevel
+Priority: optional
+Depends: libnopoll (= ${version})
+Description: WebSocket library - development files
+ noPoll is a OpenSource WebSocket implementation (RFC 6455), written in
+ ANSI C, that allows building pure WebSocket solutions or to provide
+ WebSocket support to existing TCP oriented applications. It provides
+ both client and server API.
+ .
+ This package contains headers and development files.

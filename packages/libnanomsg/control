@@ -1,0 +1,32 @@
+Source: libnanomsg
+Version: 1.2.2
+Upstream-URL: https://github.com/nanomsg/nanomsg.git
+Upstream-Ref: 1.2.2
+Build-Depends: cmake
+
+Package: libnanomsg
+Section: libs
+Priority: optional
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: High-performance implementation of scalability protocols - runtime
+ nanomsg is a socket library that provides several common communication
+ patterns. It aims to make the networking layer fast, scalable, and easy
+ to use. Implemented in C, it works on a wide range of operating systems
+ with no further dependencies.
+ .
+ The library provides implementation of several scalability protocols:
+ PAIR, BUS, REQREP, PUBSUB, PIPELINE, and SURVEY. These protocols can
+ run over various transports such as TCP, IPC, and inproc (in-process).
+ .
+ This package contains the runtime library.
+
+Package: libnanomsg-dev
+Section: libdevel
+Priority: optional
+Depends: libnanomsg (= ${version})
+Description: High-performance implementation of scalability protocols - development
+ nanomsg is a socket library that provides several common communication
+ patterns. It aims to make the networking layer fast, scalable, and easy
+ to use.
+ .
+ This package contains headers and development files.

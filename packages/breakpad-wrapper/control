@@ -2,7 +2,7 @@ Source: breakpad-wrapper
 Version: 1.0.0
 Upstream-URL: https://github.com/rdkcentral/breakpad_wrapper.git
 Upstream-Ref: 1.0.0
-Build-Depends: breakpad, libbreakpad-dev
+Build-Depends: breakpad
 
 Package: breakpad-wrapper
 Section: libs

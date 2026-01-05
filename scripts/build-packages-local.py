@@ -271,7 +271,7 @@ def main():
     skip_existing = False
     single_package = None
     skip_source = False
-    
+
     if "--help" in sys.argv or "-h" in sys.argv:
         print("Usage: build-packages-local.py [OPTIONS]")
         print("\nOptions:")
@@ -286,38 +286,38 @@ def main():
         print("\nNote: This script runs builds locally without creating a container.")
         print("      Make sure you're in the correct build environment before running.")
         sys.exit(0)
-    
+
     if "--platform" in sys.argv:
         idx = sys.argv.index("--platform")
         platform = sys.argv[idx + 1]
-    
+
     if "--timeout" in sys.argv:
         idx = sys.argv.index("--timeout")
         timeout_seconds = int(sys.argv[idx + 1])
-    
+
     if "--log-file" in sys.argv:
         idx = sys.argv.index("--log-file")
         log_file = sys.argv[idx + 1]
-    
+
     if "--skip-existing" in sys.argv:
         skip_existing = True
-    
+
     if "--skip-source" in sys.argv:
         skip_source = True
-    
+
     if "--package" in sys.argv:
         idx = sys.argv.index("--package")
         single_package = sys.argv[idx + 1]
-    
+
     if "--dry-run" in sys.argv:
         dry_run = True
-    
+
     # Set up paths
     script_dir = Path(__file__).parent
     repo_root = script_dir.parent
     packages_dir = repo_root / "packages"
     workflows_dir = repo_root / ".github" / "workflows"
-    
+
     log_info("=" * 60)
     if single_package:
         log_info(f"Building package: {single_package}")
@@ -329,27 +329,27 @@ def main():
         log_info(f"Build output will be saved to: {log_file}")
     log_info(f"Build environment: LOCAL (no container)")
     log_info("=" * 60)
-    
+
     # Build dependency graph
     log_info("Analyzing package dependencies...")
     graph, workflow_map = build_dependency_graph(packages_dir, workflows_dir)
-    
+
     # Sort packages by dependencies
     log_info("Calculating build order...")
     build_order = topological_sort(graph)
-    
+
     # Filter to single package if requested
     if single_package:
         if single_package not in build_order:
             log_error(f"Package '{single_package}' not found")
             log_info(f"Available packages: {', '.join(sorted(build_order))}")
             sys.exit(1)
-        
+
         # Build only the specified package
         build_order = [single_package]
-        
+
         log_info(f"\nBuilding only package '{single_package}'")
-    
+
     # Display dependency information
     log_info("\nDependency Graph:")
     for package in build_order:
@@ -358,23 +358,23 @@ def main():
             log_info(f"  {package} depends on: {', '.join(sorted(deps))}")
         else:
             log_info(f"  {package} (no custom dependencies)")
-    
+
     log_info(f"\nBuild order: {' → '.join(build_order)}")
     log_info(f"\nTotal packages to build: {len(build_order)}")
     log_info("=" * 60)
-    
+
     if dry_run:
         log_info("\n--dry-run mode: Showing build order only, not building packages")
         log_success(f"\nWould build {len(build_order)} packages in this order:")
         for idx, package_name in enumerate(build_order, 1):
             log_info(f"  {idx}. {package_name}")
         sys.exit(0)
-    
+
     # Build packages in order
     succeeded = []
     failed = []
     skipped = []
-    
+
     for idx, package_name in enumerate(build_order, 1):
         # Check if package already exists
         if skip_existing:
@@ -384,20 +384,20 @@ def main():
             for binary_pkg in binary_packages:
                 deb_pattern = f"{binary_pkg}_*_{platform}.deb"
                 existing_debs.extend(repo_root.glob(deb_pattern))
-            
+
             if existing_debs:
                 log_info(f"\n[{idx}/{len(build_order)}] Skipping {package_name} (found {len(existing_debs)} .deb file(s))")
                 skipped.append(package_name)
                 continue
-        
+
         log_info(f"\n[{idx}/{len(build_order)}] Building {package_name}...")
-        
-        workflow = workflow_map.get(package_name)
-        if not workflow:
-            log_error(f"Workflow file not found for {package_name}")
-            failed.append(package_name)
-            break
-        
+
+        # workflow = workflow_map.get(package_name)
+        # if not workflow:
+        #    log_error(f"Workflow file not found for {package_name}")
+        #    failed.append(package_name)
+        #    break
+
         if build_package(package_name, platform, timeout_seconds, log_file, skip_source):
             log_success(f"[{idx}/{len(build_order)}] ✓ {package_name} built successfully")
             succeeded.append(package_name)
@@ -406,23 +406,23 @@ def main():
             failed.append(package_name)
             log_error("Build failed, stopping...")
             break
-    
+
     # Print summary
     log_info("\n" + "=" * 60)
     log_info("Build Summary")
     log_info("=" * 60)
-    
+
     if skipped:
         log_info(f"Skipped (already built): {len(skipped)}/{len(build_order)}")
         for package in skipped:
             log_info(f"  ⊙ {package}")
-    
+
     log_success(f"Succeeded: {len(succeeded)}/{len(build_order)}")
-    
+
     if succeeded:
         for package in succeeded:
             log_success(f"  ✓ {package}")
-    
+
     if failed:
         log_error(f"Failed: {len(failed)}/{len(build_order)}")
         for package in failed:

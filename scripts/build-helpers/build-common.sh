@@ -33,39 +33,39 @@ log_error() {
 install_build_dependencies() {
     local project=$1
     local control_file="packages/$project/control"
-    
+
     if [ ! -f "$control_file" ]; then
         log_warning "Control file not found: $control_file"
         return 0
     fi
-    
+
     export DEBIAN_FRONTEND=noninteractive
 
     apt-get update -qq
 
     log_info "Reading build dependencies from control file..."
-    
+
     # Extract Build-Depends line
     local build_deps=$(grep "^Build-Depends:" "$control_file" | sed 's/^Build-Depends: *//' || echo "")
-    
+
     if [ -z "$build_deps" ]; then
         log_info "No build dependencies specified"
         # return 0
     fi
-    
+
     log_info "Build dependencies: $build_deps"
-    
+
     # Split into system packages and custom packages
     local base_system_pkgs="pkg-config git build-essential make autoconf automake libtool cmake file binutils dpkg-dev curl"
     local system_pkgs=""
     local custom_pkgs=""
-    
+
     # Parse comma-separated dependencies
     IFS=',' read -ra DEPS <<< "$build_deps"
     for dep in "${DEPS[@]}"; do
         # Trim whitespace and remove version constraints
         dep=$(echo "$dep" | sed 's/^ *//; s/ *$//; s/ *(.*)//')
-        
+
         # Check if it's a custom package (check if .deb file exists)
         if ls ${dep}_*_*.deb 2>/dev/null | grep -q .; then
             custom_pkgs="$custom_pkgs $dep"
@@ -75,7 +75,7 @@ install_build_dependencies() {
     done
 
     system_pkgs="$system_pkgs $base_system_pkgs"
-    
+
     # Install system packages
     if [ -n "$system_pkgs" ]; then
         log_info "Installing system packages:$system_pkgs"
@@ -83,7 +83,7 @@ install_build_dependencies() {
             log_warning "Some system packages failed to install, continuing..."
         }
     fi
-    
+
     # Install latest Rust if cargo is in the dependencies
     if echo "$build_deps" | grep -qE '(^|,)\s*(cargo|rustc)(\s|,|$)'; then
         log_info "Installing latest Rust via rustup"
@@ -92,7 +92,7 @@ install_build_dependencies() {
         export PATH="/root/.cargo/bin:$PATH"
         log_success "Rust installed: $(rustc --version)"
     fi
-    
+
     # Install custom packages
     for pkg in $custom_pkgs; do
         log_info "Installing custom package: $pkg"
@@ -105,7 +105,7 @@ install_build_dependencies() {
             log_warning "Custom package $pkg not found, build may fail"
         fi
     done
-    
+
     log_success "Build dependencies installed"
 }
 
@@ -133,26 +133,29 @@ clone_upstream() {
     local project=$1
     local upstream_url=$2
     local upstream_ref=$3
-    
+
     log_info "Cloning upstream repository: $upstream_url"
     log_info "Target ref: $upstream_ref"
-    
-    # Clean up any existing source directory
-    if [ -d "source-$project" ]; then
-        log_warning "Removing existing source directory"
-        rm -rf "source-$project"
+    if [ ! -d source ]; then
+        mkdir -p source
     fi
-    
+
+    # Clean up any existing source directory
+    if [ -d "source/$project" ]; then
+        log_warning "Removing existing source directory"
+        rm -rf "source/$project"
+    fi
+
     # Clone with shallow depth for efficiency
-    if git clone --depth 1 --branch "$upstream_ref" "$upstream_url" "source-$project" 2>/dev/null; then
+    if git clone --single-branch -b "$upstream_ref" "$upstream_url" "source/$project" 2>/dev/null; then
         log_success "Cloned repository at ref $upstream_ref"
     else
         # Fallback: clone full repo and checkout specific ref
         log_warning "Shallow clone failed, trying full clone..."
-        git clone "$upstream_url" "source-$project"
-        cd "source-$project"
+        git clone "$upstream_url" "source/$project"
+        pushd "source/$project"
         git checkout "$upstream_ref"
-        cd ..
+        popd
         log_success "Cloned repository and checked out $upstream_ref"
     fi
 }
@@ -162,21 +165,21 @@ clone_upstream() {
 apply_patches() {
     local project=$1
     local patch_dir="/workspace/packages/$project/patches"
-    
+
     if [ ! -d "$patch_dir" ]; then
         log_info "No patches directory found, skipping patch application"
         return 0
     fi
-    
+
     local patches=($(ls "$patch_dir"/*.patch 2>/dev/null | sort))
-    
+
     if [ ${#patches[@]} -eq 0 ]; then
         log_info "No patches found in $patch_dir"
         return 0
     fi
-    
+
     log_info "Applying patches from $patch_dir"
-    
+
     for patch in "${patches[@]}"; do
         log_info "Applying patch: $(basename "$patch")"
         if patch -p1 < "$patch"; then
@@ -186,7 +189,7 @@ apply_patches() {
             return 1
         fi
     done
-    
+
     log_success "All patches applied successfully"
 }
 
@@ -198,45 +201,45 @@ apply_patches() {
 clone_additional_repos() {
     local project=$1
     local repos_file="/workspace/packages/$project/additional_repos"
-    
+
     if [ ! -f "$repos_file" ]; then
         log_info "No additional_repos file found, skipping additional repository clones"
         return 0
     fi
-    
+
     log_info "Processing additional repository clones from $repos_file"
-    
+
     local line_number=0
     while IFS= read -r line || [ -n "$line" ]; do
         line_number=$((line_number + 1))
-        
+
         # Skip empty lines and comments
         [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
-        
+
         # Parse the line: target_path url ref
         read -r target_path url ref <<< "$line"
-        
+
         if [ -z "$target_path" ] || [ -z "$url" ] || [ -z "$ref" ]; then
             log_error "Invalid format at line $line_number: $line"
             log_error "Expected format: <target-path> <git-url> <ref>"
             return 1
         fi
-        
+
         log_info "Cloning into $target_path from $url at ref $ref"
-        
+
         # Create parent directory if needed
         local parent_dir=$(dirname "$target_path")
         if [ ! -d "$parent_dir" ]; then
             mkdir -p "$parent_dir"
             log_info "Created parent directory: $parent_dir"
         fi
-        
+
         # Remove existing directory if present
         if [ -d "$target_path" ]; then
             log_warning "Removing existing directory: $target_path"
             rm -rf "$target_path"
         fi
-        
+
         # Try shallow clone first
         if git clone --depth 1 --branch "$ref" "$url" "$target_path" 2>/dev/null; then
             log_success "Cloned $url at ref $ref into $target_path"
@@ -250,7 +253,7 @@ clone_additional_repos() {
             log_success "Cloned $url and checked out $ref into $target_path"
         fi
     done < "$repos_file"
-    
+
     log_success "All additional repositories cloned successfully"
 }
 
@@ -259,9 +262,9 @@ clone_additional_repos() {
 build_cmake() {
     local project=$1
     local arch=$2
-    
+
     log_info "Building with CMake..."
-    
+
     # Read custom cmake options if available
     local custom_options=""
     if [ -f "/workspace/packages/$project/cmake_options" ]; then
@@ -275,18 +278,18 @@ build_cmake() {
           -DCMAKE_CXX_FLAGS_RELEASE=\"-g -O2\""
 
     local cmake_options=$(echo "$static_options $custom_options" | tr -s '[:space:]')
-    
+
     mkdir -p build
     cd build
 
     local cmake_cmd="cmake $cmake_options .."
 
     eval "$cmake_cmd"
-    
+
     make -j$(nproc)
-    
+
     log_success "CMake build completed"
-    
+
     # Save unstripped binaries for debug package creation BEFORE make install strips them
     mkdir -p /tmp/unstripped-$project
     find . -type f -executable -exec sh -c 'file "{}" | grep -q ELF && readelf -S "{}" 2>/dev/null | grep -q "\.debug_"' \; -exec cp -p {} /tmp/unstripped-$project/ \; 2>/dev/null || true
@@ -296,7 +299,7 @@ build_cmake() {
             cp -p "$lib" /tmp/unstripped-$project/
         fi
     done 2>/dev/null || true
-    
+
     # Install to staging directory
     DESTDIR="/tmp/staging-$project" make install
     cd ..
@@ -307,9 +310,9 @@ build_cmake() {
 build_make() {
     local project=$1
     local arch=$2
-    
+
     log_info "Building with Make..."
-    
+
     # Create a wrapper script to inject -g flag into compilation
     cat > /tmp/gcc-wrapper << 'EOF'
 #!/bin/bash
@@ -328,16 +331,23 @@ fi
 exec /usr/bin/gcc.real "${args[@]}"
 EOF
     chmod +x /tmp/gcc-wrapper
-    
+
     # Backup real gcc and use wrapper
     if [ ! -f /usr/bin/gcc.real ]; then
         mv /usr/bin/gcc /usr/bin/gcc.real
         cp /tmp/gcc-wrapper /usr/bin/gcc
     fi
-    
+
+    local custom_options=""
+    if [ -f "/workspace/packages/$project/make_options" ]; then
+        custom_options=$(cat "/workspace/packages/$project/make_options" | grep -v '^#' | tr '\n' ' ' | tr -s ' ')
+        log_info "Using custom Make options: $custom_options"
+    fi
+
     # Build
-    make PREFIX=/usr -j$(nproc)
-    
+    log_info "make $custom_options PREFIX=/usr"
+    make $custom_options PREFIX=/usr -j$(nproc)
+
     # Save unstripped binaries for debug package creation BEFORE make install strips them
     mkdir -p /tmp/unstripped-$project
     find . -type f -executable -exec sh -c 'file "{}" | grep -q ELF && readelf -S "{}" 2>/dev/null | grep -q "\.debug_"' \; -exec cp -p {} /tmp/unstripped-$project/ \; 2>/dev/null || true
@@ -347,17 +357,19 @@ EOF
             cp -p "$lib" /tmp/unstripped-$project/
         fi
     done 2>/dev/null || true
-    
+
     # Restore gcc
     if [ -f /usr/bin/gcc.real ]; then
         mv /usr/bin/gcc.real /usr/bin/gcc
     fi
-    
+
     log_success "Make build completed"
-    
+
     # Install to staging directory
-    make install DESTDIR="/tmp/staging-$project" PREFIX=/usr || \
-    make install DESTDIR="/tmp/staging-$project" prefix=/usr
+    log_info "make $custom_options install DESTDIR=\"/tmp/staging-$project\" PREFIX=/usr"
+    
+    make $custom_options install DESTDIR="/tmp/staging-$project" PREFIX=/usr || \
+    make $custom_options install DESTDIR="/tmp/staging-$project" prefix=/usr
 }
 
 # Build using Autotools (./configure)
@@ -365,9 +377,9 @@ EOF
 build_autotools() {
     local project=$1
     local arch=$2
-    
+
     log_info "Building with Autotools..."
-    
+
     # Run autogen if it exists
     if [ -f "autogen.sh" ]; then
         log_info "Running autogen.sh..."
@@ -385,14 +397,14 @@ build_autotools() {
     fi
 
     ./configure --prefix=/usr $configure_options
-    
+
     make -j$(nproc)
-    
+
     log_success "Autotools build completed"
-    
+
     # Install to staging directory
     make install DESTDIR="/tmp/staging-$project"
-    
+
     # Check if there's a custom header installation script
     if [ -f "/workspace/packages/$project/install-headers.sh" ]; then
         log_info "Running custom header installation script..."
@@ -405,20 +417,20 @@ build_autotools() {
 build_meson() {
     local project=$1
     local arch=$2
-    
+
     log_info "Building with Meson..."
-    
+
     meson setup build --prefix=/usr --buildtype=release
-    
+
     # Support both old and new meson syntax
     if meson compile --help 2>&1 | grep -q -- '-C'; then
         meson compile -C build
     else
         ninja -C build
     fi
-    
+
     log_success "Meson build completed"
-    
+
     # Install to staging directory
     if meson install --help 2>&1 | grep -q -- '-C'; then
         DESTDIR="/tmp/staging-$project" meson install -C build
@@ -432,18 +444,18 @@ build_meson() {
 build_cargo() {
     local project=$1
     local arch=$2
-    
+
     log_info "Building with Cargo (Rust)..."
-    
+
     # Build in release mode
     cargo build --release
-    
+
     log_success "Cargo build completed"
-    
+
     # Install to staging directory
     local staging_dir="/tmp/staging-$project"
     mkdir -p "$staging_dir/usr/bin"
-    
+
     # Copy the binary from target/release/
     local binary_name=$(grep -E "^name\s*=" Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
     if [ -f "target/release/$binary_name" ]; then
@@ -461,19 +473,19 @@ build_cargo() {
 detect_dependencies() {
     local project=$1
     local staging_dir=$2
-    
+
     log_info "Detecting runtime dependencies in: $staging_dir"
-    
+
     # Find all ELF binaries and shared libraries
     local bins=$(find "$staging_dir" -type f \( -executable -o -name "*.so*" \) 2>/dev/null || true)
-    
+
     if [ -z "$bins" ]; then
         log_warning "No files found in $staging_dir"
         return 0
     fi
-    
+
     log_info "Found files: $(echo "$bins" | wc -l) files"
-    
+
     # Filter for ELF files
     local elf_bins=""
     while IFS= read -r bin; do
@@ -481,12 +493,12 @@ detect_dependencies() {
             elf_bins="$elf_bins$bin"$'\n'
         fi
     done <<< "$bins"
-    
+
     if [ -z "$elf_bins" ]; then
         log_warning "No ELF binaries or libraries found for dependency detection"
         return 0
     fi
-    
+
     log_info "Found ELF files: $(echo "$elf_bins" | grep -c . || echo 0) files"
 
     # Try dpkg-shlibdeps first to get official dependencies
@@ -682,29 +694,29 @@ create_deb() {
     local version=$2
     local arch=$3
     local staging_dir=$4
-    
+
     local control_file="packages/$project/control"
     if [ ! -f "$control_file" ]; then
         log_error "Control file not found: $control_file"
         return 1
     fi
-    
+
     # Count how many Package: sections exist
     local pkg_count=$(grep -c "^Package:" "$control_file")
-    
+
     # Check if debug packages should be created (default: yes)
     local create_debug="yes"
     if [ -f "packages/$project/create_debug_packages" ]; then
         create_debug=$(cat "packages/$project/create_debug_packages" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
     fi
-    
+
     # Extract debug symbols and add debug links BEFORE creating packages
     if [ "$create_debug" = "yes" ] || [ "$create_debug" = "true" ] || [ "$create_debug" = "1" ]; then
         prepare_debug_symbols "$project" "$version" "$arch" "$staging_dir"
     else
         log_info "Debug packages disabled for $project"
     fi
-    
+
     if [ "$pkg_count" -eq 1 ]; then
         # Single package - use simple approach
         create_single_deb "$project" "$version" "$arch" "$staging_dir"
@@ -712,7 +724,7 @@ create_deb() {
         # Multiple packages - need to split files
         create_multi_deb "$project" "$version" "$arch" "$staging_dir"
     fi
-    
+
     # Create debug package if debug symbols exist and enabled
     if [ "$create_debug" = "yes" ] || [ "$create_debug" = "true" ] || [ "$create_debug" = "1" ]; then
         create_debug_package "$project" "$version" "$arch" "$staging_dir"
@@ -729,20 +741,20 @@ create_single_deb() {
     local version=$2
     local arch=$3
     local staging_dir=$4
-    
+
     log_info "Creating Debian package for $project version $version ($arch)..."
-    
+
     # Create package directory structure
     local pkg_dir="/tmp/package-$project"
     rm -rf "$pkg_dir"
     mkdir -p "$pkg_dir/DEBIAN"
-    
+
     # Copy all files from staging
     if [ -d "$staging_dir/usr" ]; then
         mkdir -p "$pkg_dir/usr"
         cp -r "$staging_dir/usr/"* "$pkg_dir/usr/" 2>/dev/null || true
     fi
-    
+
     # Calculate installed size (in KB) - include all directories except DEBIAN
     local installed_size=$(du -sk "$pkg_dir" 2>/dev/null | cut -f1 || echo "0")
     # Subtract DEBIAN directory if it exists
@@ -750,15 +762,15 @@ create_single_deb() {
         local debian_size=$(du -sk "$pkg_dir/DEBIAN" 2>/dev/null | cut -f1 || echo "0")
         installed_size=$((installed_size - debian_size))
     fi
-    
+
     # Read control file metadata
     local control_file="packages/$project/control"
     local description=$(grep -A 20 "^Description:" "$control_file" || echo "Description: $project package")
     local depends=$(grep "^Depends:" "$control_file" | sed 's/^Depends: *//' | head -1 || echo "")
-    
+
     # Detect additional dependencies
     local auto_depends=$(detect_dependencies "$project" "$staging_dir")
-    
+
     # Substitute ${shlibs:Depends} with auto-detected dependencies
     if [[ "$depends" == *'${shlibs:Depends}'* ]]; then
         depends="${depends//\$\{shlibs:Depends\}/$auto_depends}"
@@ -767,28 +779,28 @@ create_single_deb() {
     elif [ -n "$auto_depends" ]; then
         depends="$auto_depends"
     fi
-    
+
     # Remove ${misc:Depends} template variable (not used in simple packaging)
     depends="${depends//\$\{misc:Depends\}/}"
     # Remove ${perl:Depends} template variable
     depends="${depends//\$\{perl:Depends\}/}"
-    
+
     # Replace version placeholders in depends
     # depends="${depends//\$\{version\}/$version}"
     # depends="${depends//(= \$\{version\})/(= $version)}"
     # depends="${depends//\$\{binary:Version\}/$version}"
     # depends="${depends//(= \$\{binary:Version\})/(= $version)}"
-    
+
     # Clean up any resulting issues: double commas, leading/trailing commas, extra spaces
     depends=$(echo "$depends" | sed 's/,,\+/,/g; s/^[, ]\+//; s/[, ]\+$//; s/  \+/ /g')
-    
+
     # Log the final dependencies
     if [ -n "$depends" ]; then
         log_info "Package dependencies: $depends"
     else
         log_info "No package dependencies"
     fi
-    
+
     # Generate control file
     cat > "$pkg_dir/DEBIAN/control" << EOF
 Package: $project
@@ -799,16 +811,16 @@ Architecture: $arch
 Installed-Size: $installed_size
 Maintainer: Package Workflows <packages@example.com>
 EOF
-    
+
     if [ -n "$depends" ]; then
         echo "Depends: $depends" >> "$pkg_dir/DEBIAN/control"
     fi
-    
+
     echo "$description" >> "$pkg_dir/DEBIAN/control"
-    
+
     log_info "Package control file created"
     cat "$pkg_dir/DEBIAN/control"
-    
+
     # Generate shlibs file for shared libraries
     local shlibs_found=0
     # Collect library roots to scan
@@ -832,13 +844,13 @@ EOF
     if [ $shlibs_found -eq 1 ]; then
         log_info "Generated shlibs file for $project"
         cat "$pkg_dir/DEBIAN/shlibs"
-        
+
         # Also install shlibs to system location for dpkg-shlibdeps
         mkdir -p /var/lib/dpkg/info
         cp "$pkg_dir/DEBIAN/shlibs" "/var/lib/dpkg/info/$project.shlibs"
         log_info "Installed shlibs to /var/lib/dpkg/info/$project.shlibs"
     fi
-    
+
     # Copy maintainer scripts if they exist
     # Only install for runtime packages (not -dev, -dbg, or -dbgsrc packages)
     if [[ ! "$project" =~ -(dev|dbg|dbgsrc)$ ]]; then
@@ -852,30 +864,30 @@ EOF
     else
         log_info "Skipping maintainer scripts for $project (dev/debug package)"
     fi
-    
+
     # Install systemd service files if they exist
     if ls packages/$project/*.service 1> /dev/null 2>&1; then
         log_info "Installing systemd service file(s)"
         mkdir -p "$pkg_dir/lib/systemd/system"
         cp packages/$project/*.service "$pkg_dir/lib/systemd/system/"
     fi
-    
+
     # Process install file if it exists
     if [ -f "packages/$project/install" ]; then
         log_info "Processing install file"
         while IFS= read -r line || [ -n "$line" ]; do
             # Skip empty lines and comments
             [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
-            
+
             # Parse the line: source_file destination_path
             local dest_path="$line"
             local source_file=$(basename "$dest_path")
-            
+
             # Check if source file exists in package directory
             if [ -f "packages/$project/$source_file" ]; then
                 local full_dest="$pkg_dir/$dest_path"
                 local dest_dir=$(dirname "$full_dest")
-                
+
                 log_info "Installing $source_file to /$dest_path"
                 mkdir -p "$dest_dir"
                 cp "packages/$project/$source_file" "$full_dest"
@@ -884,14 +896,15 @@ EOF
             fi
         done < "packages/$project/install"
     fi
-    
+
     # Build the package
     local output_deb="${project}_${version}_${arch}.deb"
     dpkg-deb --build "$pkg_dir" "$output_deb"
-    
+
     if [ -f "$output_deb" ]; then
         log_success "Package created: $output_deb"
         ls -lh "$output_deb"
+        apt-get install -y "./$output_deb"
         return 0
     else
         log_error "Failed to create package"
@@ -906,16 +919,16 @@ create_multi_deb() {
     local version=$2
     local arch=$3
     local staging_dir=$4
-    
+
     local control_file="packages/$project/control"
-    
+
     log_info "Creating multiple Debian packages for $project version $version ($arch)..."
-    
+
     # Get all package names
     local pkg_names=($(grep "^Package:" "$control_file" | sed 's/^Package: *//'))
-    
+
     log_info "Found ${#pkg_names[@]} packages: ${pkg_names[*]}"
-    
+
     # Process each package
     for pkg_name in "${pkg_names[@]}"; do
         create_package_from_section "$project" "$pkg_name" "$version" "$arch" "$staging_dir" "$control_file"
@@ -931,15 +944,15 @@ create_package_from_section() {
     local arch=$4
     local staging_dir=$5
     local control_file=$6
-    
+
     log_info "Creating package: $pkg_name"
-    
+
     # Create package directory
     local pkg_dir="/tmp/package-$pkg_name"
     rm -rf "$pkg_dir"
     mkdir -p "$pkg_dir/DEBIAN"
     mkdir -p "$pkg_dir/usr"
-    
+
     # Determine which files belong to this package based on common patterns
     if [[ "$pkg_name" == *"-dev" ]]; then
         # Development package: headers, static libraries, pkg-config files, cmake files
@@ -971,14 +984,14 @@ create_package_from_section() {
             done
         fi
     fi
-    
+
     # Skip if no files were included
     if [ ! -d "$pkg_dir/usr" ] || [ -z "$(find "$pkg_dir/usr" -type f 2>/dev/null)" ]; then
         log_warning "No files for package $pkg_name, skipping"
         rm -rf "$pkg_dir"
         return 0
     fi
-    
+
     # Calculate installed size (in KB) - include all directories except DEBIAN
     local installed_size=$(du -sk "$pkg_dir" 2>/dev/null | cut -f1 || echo "0")
     # Subtract DEBIAN directory if it exists
@@ -986,11 +999,11 @@ create_package_from_section() {
         local debian_size=$(du -sk "$pkg_dir/DEBIAN" 2>/dev/null | cut -f1 || echo "0")
         installed_size=$((installed_size - debian_size))
     fi
-    
+
     # Extract metadata for this package from control file
     local start_line=$(grep -n "^Package: *$pkg_name\$" "$control_file" | cut -d: -f1)
     local next_line=$(grep -n "^Package:" "$control_file" | cut -d: -f1 | awk -v start="$start_line" '$1 > start {print; exit}')
-    
+
     if [ -z "$next_line" ]; then
         # Last package in file
         local pkg_section=$(sed -n "${start_line},\$p" "$control_file")
@@ -998,21 +1011,21 @@ create_package_from_section() {
         # Extract up to next Package: line
         local pkg_section=$(sed -n "${start_line},$((next_line-1))p" "$control_file")
     fi
-    
+
     log_info "Package section for $pkg_name (lines $start_line to ${next_line:-end}):"
     log_info "$(echo "$pkg_section" | head -10)"
-    
+
     local description=$(echo "$pkg_section" | grep -A 20 "^Description:" || echo "Description: $pkg_name")
     local depends=$(echo "$pkg_section" | grep "^Depends:" | sed 's/^Depends: *//' || echo "")
     local section=$(echo "$pkg_section" | grep "^Section:" | sed 's/^Section: *//' || echo "misc")
     local priority=$(echo "$pkg_section" | grep "^Priority:" | sed 's/^Priority: *//' || echo "optional")
-    
+
     log_info "Creating package: $pkg_name"
     log_info "  Original Depends: $depends"
-    
+
     # Detect additional dependencies for this package
     local auto_depends=$(detect_dependencies "$project" "$pkg_dir")
-    
+
     # Substitute ${shlibs:Depends} with auto-detected dependencies
     if [[ "$depends" == *'${shlibs:Depends}'* ]]; then
         depends="${depends//\$\{shlibs:Depends\}/$auto_depends}"
@@ -1021,21 +1034,21 @@ create_package_from_section() {
     elif [ -n "$auto_depends" ]; then
         depends="$auto_depends"
     fi
-    
+
     # Remove ${misc:Depends} template variable (not used in simple packaging)
     depends="${depends//\$\{misc:Depends\}/}"
     # Remove ${perl:Depends} template variable
     depends="${depends//\$\{perl:Depends\}/}"
-    
+
     # Replace version placeholder in depends
     depends="${depends//\$\{version\}/$version}"
     depends="${depends//(= \$\{version\})/(= $version)}"
-    
+
     # Clean up any resulting issues: double commas, leading/trailing commas, extra spaces
     depends=$(echo "$depends" | sed 's/,,\+/,/g; s/^[, ]\+//; s/[, ]\+$//; s/  \+/ /g')
-    
+
     log_info "  Final Depends: $depends"
-    
+
     # Generate control file
     cat > "$pkg_dir/DEBIAN/control" << EOF
 Package: $pkg_name
@@ -1046,13 +1059,13 @@ Architecture: $arch
 Installed-Size: $installed_size
 Maintainer: Package Workflows <packages@example.com>
 EOF
-    
+
     if [ -n "$depends" ]; then
         echo "Depends: $depends" >> "$pkg_dir/DEBIAN/control"
     fi
-    
+
     echo "$description" >> "$pkg_dir/DEBIAN/control"
-    
+
     # Generate shlibs file for shared libraries
     local shlibs_found=0
     # Collect library roots to scan
@@ -1076,13 +1089,13 @@ EOF
     if [ $shlibs_found -eq 1 ]; then
         log_info "Generated shlibs file for $pkg_name"
         cat "$pkg_dir/DEBIAN/shlibs"
-        
+
         # Also install shlibs to system location for dpkg-shlibdeps
         mkdir -p /var/lib/dpkg/info
         cp "$pkg_dir/DEBIAN/shlibs" "/var/lib/dpkg/info/$pkg_name.shlibs"
         log_info "Installed shlibs to /var/lib/dpkg/info/$pkg_name.shlibs"
     fi
-    
+
     # Copy maintainer scripts if they exist
     # Only install for runtime packages (not -dev, -dbg, or -dbgsrc packages)
     if [[ ! "$pkg_name" =~ -(dev|dbg|dbgsrc)$ ]]; then
@@ -1096,7 +1109,7 @@ EOF
     else
         log_info "Skipping maintainer scripts for $pkg_name (dev/debug package)"
     fi
-    
+
     # Install systemd service files if they exist
     # Only install for packages that are not -dev, -dbg, or -dbgsrc packages
     if [[ ! "$pkg_name" =~ -(dev|dbg|dbgsrc)$ ]]; then
@@ -1110,7 +1123,7 @@ EOF
             cp "packages/$project/${project}.service" "$pkg_dir/lib/systemd/system/"
         fi
     fi
-    
+
     # Process install file if it exists
     # Only install for main package (not -dev, -dbg, or -dbgsrc packages)
     if [[ ! "$pkg_name" =~ -(dev|dbg|dbgsrc)$ ]] && [ -f "packages/$project/install" ]; then
@@ -1118,16 +1131,16 @@ EOF
         while IFS= read -r line || [ -n "$line" ]; do
             # Skip empty lines and comments
             [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
-            
+
             # Parse the line: destination_path
             local dest_path="$line"
             local source_file=$(basename "$dest_path")
-            
+
             # Check if source file exists in package directory
             if [ -f "packages/$project/$source_file" ]; then
                 local full_dest="$pkg_dir/$dest_path"
                 local dest_dir=$(dirname "$full_dest")
-                
+
                 log_info "Installing $source_file to /$dest_path"
                 mkdir -p "$dest_dir"
                 cp "packages/$project/$source_file" "$full_dest"
@@ -1136,14 +1149,15 @@ EOF
             fi
         done < "packages/$project/install"
     fi
-    
+
     # Build the package
     local output_deb="${pkg_name}_${version}_${arch}.deb"
     dpkg-deb --build "$pkg_dir" "$output_deb"
-    
+
     if [ -f "$output_deb" ]; then
         log_success "Package created: $output_deb"
         ls -lh "$output_deb"
+        apt-get install -y "./$output_deb"         
     else
         log_error "Failed to create package: $pkg_name"
         return 1
@@ -1160,81 +1174,75 @@ prepare_debug_symbols() {
     local staging_dir=$4
     local unstripped_dir="/tmp/unstripped-$project"
     local debug_dir="/tmp/debug-$project"
-    
+
     # Check if we have saved unstripped binaries
     if [ ! -d "$unstripped_dir" ]; then
         log_info "No unstripped binaries found, skipping debug symbol preparation"
         return 0
     fi
-    
+
     rm -rf "$debug_dir"
     mkdir -p "$debug_dir/usr/lib/debug"
-    
+
     log_info "Preparing debug symbols for $project"
-    
+
     local has_debug=false
-    
+
     # Process each unstripped binary
     for unstripped_file in "$unstripped_dir"/*; do
         [ -f "$unstripped_file" ] || continue
-        
+
         local basename=$(basename "$unstripped_file")
-        
+
         # Determine where this binary is installed and where debug symbols go
         local debug_file=""
         local stripped_binary=""
-        
+
         if [ -f "$staging_dir/usr/bin/$basename" ]; then
             debug_file="$debug_dir/usr/lib/debug/usr/bin/$basename.debug"
             stripped_binary="$staging_dir/usr/bin/$basename"
-        elif [ -f "$staging_dir/usr/lib/$basename" ] || [ -f "$staging_dir/usr/lib/quickjs/$basename" ]; then
-            # Handle libraries in either /usr/lib or /usr/lib/quickjs
-            if [ -f "$staging_dir/usr/lib/quickjs/$basename" ]; then
-                debug_file="$debug_dir/usr/lib/debug/usr/lib/quickjs/$basename.debug"
-                stripped_binary="$staging_dir/usr/lib/quickjs/$basename"
-            else
-                debug_file="$debug_dir/usr/lib/debug/usr/lib/$basename.debug"
-                stripped_binary="$staging_dir/usr/lib/$basename"
-            fi
+        elif [ -f "$staging_dir/usr/lib/$basename" ]; then
+            debug_file="$debug_dir/usr/lib/debug/usr/lib/$basename.debug"
+            stripped_binary="$staging_dir/usr/lib/$basename"
         else
             continue
         fi
-        
+
         mkdir -p "$(dirname "$debug_file")"
-        
+
         log_info "Extracting debug symbols from $basename"
         # Extract debug symbols from unstripped version
         if objcopy --only-keep-debug "$unstripped_file" "$debug_file" 2>/dev/null; then
             has_debug=true
             log_info "Debug symbols extracted for $basename"
-            
+
             # Add debug link to the stripped binary in staging (BEFORE it's packaged)
             if [ -n "$stripped_binary" ] && [ -f "$stripped_binary" ]; then
                 log_info "Adding debug link to $basename in staging"
                 local debug_basename="$basename.debug"
                 local stripped_dir=$(dirname "$stripped_binary")
-                
+
                 # Temporarily copy debug file to same directory as binary
                 cp "$debug_file" "$stripped_dir/$debug_basename" 2>/dev/null
-                
+
                 # Add debug link (must be in same directory)
                 if (cd "$stripped_dir" && objcopy --add-gnu-debuglink="$debug_basename" "$basename" 2>&1); then
                     log_info "Debug link added successfully to $basename"
                 else
                     log_error "Failed to add debug link to $basename"
                 fi
-                
+
                 # Remove temporary debug file
                 rm -f "$stripped_dir/$debug_basename"
             fi
         fi
     done
-    
+
     if [ "$has_debug" = false ]; then
         log_info "No debug symbols found"
         rm -rf "$debug_dir"
     fi
-    
+
     return 0
 }
 
@@ -1245,28 +1253,28 @@ create_debug_package() {
     local version=$2
     local arch=$3
     local staging_dir=$4
-    
+
     log_info "Creating debug package for $project..."
-    
+
     # Check if debug symbols were prepared
     local debug_dir="/tmp/debug-$project"
     if [ ! -d "$debug_dir" ] || [ -z "$(find "$debug_dir" -type f 2>/dev/null)" ]; then
         log_info "No debug symbols found, skipping debug package"
         return 0
     fi
-    
+
     # Create debug package directory
     local debug_pkg="${project}-dbg"
     local pkg_dir="/tmp/package-$debug_pkg"
     rm -rf "$pkg_dir"
     mkdir -p "$pkg_dir/DEBIAN"
-    
+
     # Copy debug symbols
     cp -r "$debug_dir/usr" "$pkg_dir/" 2>/dev/null
-    
+
     # Calculate installed size
     local installed_size=$(du -sk "$pkg_dir/usr" 2>/dev/null | cut -f1 || echo "0")
-    
+
     # Generate control file for debug package
     cat > "$pkg_dir/DEBIAN/control" << EOF
 Package: $debug_pkg
@@ -1280,11 +1288,11 @@ Depends: $project (= $version)
 Description: Debug symbols for $project
  This package contains the debugging symbols for $project.
 EOF
-    
+
     # Build the debug package
     local output_deb="${debug_pkg}_${version}_${arch}.deb"
     dpkg-deb --build "$pkg_dir" "$output_deb"
-    
+
     if [ -f "$output_deb" ]; then
         log_success "Debug package created: $output_deb"
         ls -lh "$output_deb"
@@ -1298,25 +1306,25 @@ EOF
 create_source_package() {
     local project=$1
     local version=$2
-    
+
     log_info "Creating source package for $project..."
-    
-    local source_dir="source-$project"
+
+    local source_dir="source/$project"
     if [ ! -d "$source_dir" ]; then
         log_warning "Source directory not found, skipping source package"
         return 0
     fi
-    
+
     # Create debug source package directory
     local source_pkg="${project}-dbgsrc"
     local pkg_dir="/tmp/package-$source_pkg"
     rm -rf "$pkg_dir"
     mkdir -p "$pkg_dir/DEBIAN"
     mkdir -p "$pkg_dir/usr/src/$project-$version"
-    
+
     # Copy source files (excluding VCS and build artifacts)
     cp -r "$source_dir/." "$pkg_dir/usr/src/$project-$version/"
-    
+
     # Remove VCS metadata and build artifacts
     cd "$pkg_dir/usr/src/$project-$version"
     rm -rf .git .github .gitignore .gitattributes
@@ -1324,10 +1332,10 @@ create_source_package() {
     make clean 2>/dev/null || true
     make distclean 2>/dev/null || true
     cd /workspace
-    
+
     # Calculate installed size
     local installed_size=$(du -sk "$pkg_dir/usr" 2>/dev/null | cut -f1 || echo "0")
-    
+
     # Generate control file for source package
     cat > "$pkg_dir/DEBIAN/control" << EOF
 Package: $source_pkg
@@ -1342,18 +1350,18 @@ Description: Source code for $project
  .
  The source files are installed in /usr/src/$project-$version/
 EOF
-    
+
     # Build the source package
     local output_deb="${source_pkg}_${version}.deb"
     dpkg-deb --build "$pkg_dir" "$output_deb"
-    
+
     if [ -f "$output_deb" ]; then
         log_success "Source package created: $output_deb"
         ls -lh "$output_deb"
     else
         log_error "Failed to create source package"
     fi
-    
+
     # Clean up temporary directory
     rm -rf "$pkg_dir"
 }
@@ -1365,95 +1373,91 @@ build_package() {
     local arch=$2
     local upstream_ref_override=${3:-""}
     local skip_source=false
-    
+
     # Check for --skip-source flag in any position
     if [[ "$3" == "--skip-source" ]] || [[ "${4:-}" == "--skip-source" ]]; then
         skip_source=true
-        log_info "Skipping source clone and patching (using existing source-$project)"
+        log_info "Skipping source clone and patching (using existing source/$project)"
     fi
-    
+
     log_info "========================================="
     log_info "Building package: $project"
     log_info "Architecture: $arch"
     log_info "========================================="
-    
+
     # Read project configuration
     local control_file="packages/$project/control"
     if [ ! -f "$control_file" ]; then
         log_error "Control file not found: $control_file"
         return 1
     fi
-    
+
     local upstream_url=$(grep "^Upstream-URL:" "$control_file" | sed 's/^Upstream-URL: *//')
     local upstream_ref=$(grep "^Upstream-Ref:" "$control_file" | sed 's/^Upstream-Ref: *//')
     local version=$(grep "^Version:" "$control_file" | sed 's/^Version: *//')
-    
+
     # Override upstream ref if provided
     if [ -n "$upstream_ref_override" ]; then
         log_info "Using upstream ref override: $upstream_ref_override"
         upstream_ref="$upstream_ref_override"
     fi
-    
+
     # Check for custom install script (for packages without upstream source)
     local install_script="packages/$project/install.sh"
     if [ -f "$install_script" ]; then
         log_info "Found custom install script, using it instead of upstream build"
-        
+
         # Create staging directory
         export STAGING_DIR="/tmp/staging-$project"
         mkdir -p "$STAGING_DIR"
-        
+
         # Run custom install script
         bash "$install_script"
-        
+
         # Create Debian package
         create_deb "$project" "$version" "$arch" "$STAGING_DIR"
-        
+
         # Move packages to workspace
         log_info "Moving packages to workspace..."
         mv -f *.deb /workspace/ 2>/dev/null || true
         cd /workspace
         ls -lh *.deb 2>/dev/null || log_warning "No .deb files found"
-        
+
         log_success "========================================="
         log_success "Package build completed successfully!"
         log_success "========================================="
         return 0
     fi
-    
+
     # Validate required fields for upstream builds
     if [ -z "$upstream_url" ] || [ -z "$upstream_ref" ] || [ -z "$version" ]; then
         log_error "Missing required fields in control file (Upstream-URL, Upstream-Ref, or Version)"
         log_error "For packages without upstream source, provide an install.sh script"
         return 1
     fi
-    
+
+    cd /workspace
+
     # Clone upstream repository and apply patches (unless skipped)
-    if [ "$skip_source" = false ]; then
+    # [ "$skip_source" = false ]
+    if [ ! -d "source/$project" ]; then
         clone_upstream "$project" "$upstream_url" "$upstream_ref"
-        
-        cd "source-$project"
-        
+
         # Apply patches
-        cd /workspace
-        cd "source-$project"
+        pushd "source/$project"
         apply_patches "$project"
-        
+
         # Clone additional repositories
         clone_additional_repos "$project"
-    else
-        # Verify source directory exists
-        if [ ! -d "source-$project" ]; then
-            log_error "Source directory source-$project does not exist. Cannot skip source."
-            return 1
-        fi
-        cd "source-$project"
+        popd
     fi
-    
+
+    cd "source/$project"
+
     # Detect build system
     local buildsys=$(detect_build_system)
     log_info "Detected build system: $buildsys"
-    
+
     # Source env file if it exists
     if [ -f "/workspace/packages/$project/env" ]; then
         log_info "Sourcing env file..."
@@ -1482,25 +1486,25 @@ build_package() {
             return 1
             ;;
     esac
-    
+
     cd /workspace
-    
+
     # Create Debian package
     create_deb "$project" "$version" "$arch" "/tmp/staging-$project"
-    
+
     # Move all generated .deb files to workspace root for artifact upload
     log_info "Moving packages to workspace..."
     mv -f *.deb /workspace/ 2>/dev/null || true
     cd /workspace
     ls -lh *.deb 2>/dev/null || log_warning "No .deb files found"
-    
+
     # Clean up environment variables to prevent pollution between builds
     log_info "Cleaning up build environment variables..."
     unset CFLAGS CXXFLAGS LDFLAGS CPPFLAGS
     unset CC CXX LD AR RANLIB NM STRIP OBJCOPY OBJDUMP
     unset PKG_CONFIG_PATH PKG_CONFIG_LIBDIR
     unset STAGING_DIR
-    
+
     log_success "========================================="
     log_success "Package build completed successfully!"
     log_success "========================================="

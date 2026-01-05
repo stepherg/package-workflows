@@ -1,0 +1,35 @@
+Source: libubox
+Section: libs
+Priority: optional
+Version: 1.0.0
+Build-Depends: debhelper-compat (= 12), cmake, pkgconf, libjson-c-dev
+Homepage: https://git.openwrt.org/project/libubox.git
+Upstream-URL: https://github.com/openwrt/libubox.git
+Upstream-Ref: 7928f1711703767b0ac5ce916c7231d0e1af1ca2
+
+
+Package: libubox
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Section: libs
+Description: OpenWrt utility library
+ Libubox is a utility library used by OpenWrt. It provides various data
+ structures (AVL tree, linked lists, blob format, key-value lists) and
+ utilities (event loop, socket helpers, base64 encoding, MD5 hashing,
+ logging) commonly used in OpenWrt.
+ .
+ This package contains the shared libraries: libubox, libblobmsg_json,
+ and libjson_script.
+
+Package: libubox-dev
+Architecture: any
+Depends: libubox (= ${version})
+Section: libdevel
+Description: Development files for libubox
+ Libubox is a utility library used by OpenWrt. It provides various data
+ structures (AVL tree, linked lists, blob format, key-value lists) and
+ utilities (event loop, socket helpers, base64 encoding, MD5 hashing,
+ logging) commonly used in OpenWrt.
+ .
+ This package contains the development files (headers, static libraries,
+ and symlinks) for libubox.

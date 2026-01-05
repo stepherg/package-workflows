@@ -2,7 +2,7 @@ Source: utopia
 Version: 1.4.0
 Upstream-URL: https://github.com/rdkcentral/utopia
 Upstream-Ref: 1.4.0
-Build-Depends: zlib1g-dev, libcjson-dev, libmsgpack-dev, liblog4c3, librdk-logger, librdk-logger-dev, libsafec, libsafec-dev, libccsp-common, libccsp-common-dev, libsyswrapper, libsyswrapper-dev, linenoise, rbus, librbus-dev, libwebconfig-framework, libwebconfig-framework-dev, telemetry, telemetry-dev
+Build-Depends: zlib1g-dev, libcjson-dev, libmsgpack-dev, liblog4c3, librdk-logger, libsafec, libccsp-common, libsyswrapper, rbus, libwebconfig-framework, telemetry
 
 Package: utopia
 Architecture: any

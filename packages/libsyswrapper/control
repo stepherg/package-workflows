@@ -2,7 +2,7 @@ Source: libsyswrapper
 Version: 1.0.0
 Upstream-URL: https://github.com/rdkcentral/libSyscallWrapper
 Upstream-Ref: IMPORT_INITIAL_develop
-Build-Depends: liblog4c3, librdk-logger, librdk-logger-dev
+Build-Depends: liblog4c3, librdk-logger
 
 Package: libsyswrapper
 Architecture: any

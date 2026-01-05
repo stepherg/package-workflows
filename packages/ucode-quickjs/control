@@ -1,0 +1,25 @@
+Source: ucode-quickjs
+Version: 1.0.0
+Upstream-URL: git@github.com:rdk-gdcs/ucode-quickjs.git
+Upstream-Ref: HEAD
+Build-Depends: libssl-dev, libz-dev, libnanomsg, libmsgpack-dev, libcurl4-openssl-dev, libyaml-dev, quickjs, utopia, rbus
+
+Package: ucode-quickjs
+Section: interpreters
+Priority: optional
+Depends:  quickjs, ${shlibs:Depends}, ${misc:Depends}
+Description: ucode JavaScript interpreter with QuickJS backend
+ ucode is a JavaScript-like scripting language with a QuickJS backend.
+ This package provides the ucode interpreter and runtime libraries.
+ .
+ This package contains the runtime components.
+
+Package: libucode-quickjs-dev
+Section: libdevel
+Priority: optional
+Depends: ucode-quickjs (= ${version})
+Description: ucode JavaScript interpreter - development files
+ ucode is a JavaScript-like scripting language with a QuickJS backend.
+ .
+ This package contains the development headers and libraries needed
+ to build applications using ucode.

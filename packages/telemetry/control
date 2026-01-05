@@ -2,7 +2,7 @@ Source: telemetry
 Version: 1.7.3
 Upstream-URL: https://github.com/rdkcentral/telemetry.git
 Upstream-Ref: 1.7.3
-Build-Depends: libglib2.0-dev, libmsgpack-dev, libcjson-dev, libcurl4-openssl-dev, liblog4c3, linenoise, rbus, librbus-dev, librdk-logger, librdk-logger-dev, libsyswrapper, libsyswrapper-dev, libwebconfig-framework, libwebconfig-framework-dev
+Build-Depends: libglib2.0-dev, libmsgpack-dev, libcjson-dev, libcurl4-openssl-dev, liblog4c3, rbus, librdk-logger, libsyswrapper, libwebconfig-framework
 
 Package: telemetry
 Architecture: any
