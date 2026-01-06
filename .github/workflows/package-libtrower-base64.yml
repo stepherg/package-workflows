@@ -1,18 +1,18 @@
-name: Package cpeabs
+name: Package libtrower-base64
 
 on:
   push:
     branches: [ main ]
     paths:
-      - 'packages/cpeabs/**'
+      - 'packages/libtrower-base64/**'
       - 'scripts/**'
-      - '.github/workflows/package-cpeabs.yml'
+      - '.github/workflows/package-libtrower-base64.yml'
   pull_request:
     branches: [ main ]
     paths:
-      - 'packages/cpeabs/**'
+      - 'packages/libtrower-base64/**'
       - 'scripts/**'
-      - '.github/workflows/package-cpeabs.yml'
+      - '.github/workflows/package-libtrower-base64.yml'
   workflow_dispatch:
 
 jobs:
@@ -27,7 +27,7 @@ jobs:
             docker_platform: linux/amd64
     
     runs-on: ubuntu-latest
-    name: Build cpeabs for ${{ matrix.platform }}
+    name: Build libtrower-base64 for ${{ matrix.platform }}
     
     steps:
       - name: Checkout repository
@@ -46,14 +46,11 @@ jobs:
             ubuntu:20.04 \
             bash -c '
               set -euo pipefail
-
+              
               # Source build helpers
               source scripts/build-helpers/build-common.sh
+              install_build_dependencies libtrower-base64
               
-              # Install dependencies for this package
-              install_build_dependencies cpeabs
-
-              # Build the package
-              build_package cpeabs ${{ matrix.platform }}
+              # Build package
+              build_package libtrower-base64 ${{ matrix.platform }}
             '
-  

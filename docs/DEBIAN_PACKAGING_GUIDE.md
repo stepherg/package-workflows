@@ -47,6 +47,14 @@ project-root/
 │       ├── cmake_options        # CMake-specific flags (optional)
 │       ├── make_options         # Make-specific flags (optional)
 │       ├── additional_repos     # Additional git repos to clone (optional)
+│       ├── cmake_options        # CMake-specific flags (optional)
+│       ├── make_options         # Make-specific flags (optional)
+│       ├── configure_options    # Autotools configure flags (optional)
+│       ├── additional_repos     # Additional git repos to clone (optional)
+│       ├── install.sh           # Custom installation script (optional)
+│       ├── env                  # Environment variables for build (optional)
+│       ├── create_debug_packages # Control debug package creation (optional)
+│       ├── install              # File installation manifest (optional)
 │       ├── patches/             # Source patches (optional)
 │       │   └── 001-fix.patch
 │       ├── postinst             # Post-installation script (optional)
@@ -160,10 +168,12 @@ The `build-common.sh` script provides the core build orchestration:
 - Clones source, applies patches, detects build system
 - Orchestrates the entire build process
 - Creates all package types
-- **Usage:** `build_package "<project>" "${{ matrix.platform }}" "${{ inputs.upstream_ref }}"`
+- **Source Management**: By default, reuses existing source directory if present
+- **Usage:** `build_package "<project>" "${{ matrix.platform }}" "${{ inputs.upstream_ref }}" [--force-source]`
   - First argument: package name (must match directory name in `packages/`)
   - Second argument: platform/architecture (arm64, amd64)
   - Third argument: optional upstream ref override (defaults to value in control file)
+  - Fourth argument: optional `--force-source` flag to force re-cloning even if source exists
 
 **`build_cmake()`**
 - Handles CMake-based projects
@@ -524,7 +534,235 @@ vendor/lib2 https://github.com/org/lib2.git main
 internal/tools https://internal.git.server/tools.git abc123def
 ```
 
+### 6. Custom Install Scripts
+
+For packages that don't have upstream source code or require custom installation logic, the build system supports custom `install.sh` scripts.
+
+#### When to Use Custom Install Scripts
+
+- Wrapper packages that repackage existing binaries
+- Configuration-only packages
+- Packages that aggregate files from multiple sources
+- Packages requiring custom installation logic
+
+#### Creating install.sh
+
+Create a file at `packages/<project>/install.sh`:
+
+```bash
+#!/bin/bash
+# Custom installation script for <project>
+
+set -euo pipefail
+
+# STAGING_DIR environment variable is provided by build system
+# It points to /tmp/staging-<project>
+
+# Example: Install custom binaries
+mkdir -p "$STAGING_DIR/usr/bin"
+cp custom-tool "$STAGING_DIR/usr/bin/"
+chmod 755 "$STAGING_DIR/usr/bin/custom-tool"
+
+# Example: Install libraries
+mkdir -p "$STAGING_DIR/usr/lib"
+cp libcustom.so.1.0 "$STAGING_DIR/usr/lib/"
+ln -s libcustom.so.1.0 "$STAGING_DIR/usr/lib/libcustom.so.1"
+ln -s libcustom.so.1 "$STAGING_DIR/usr/lib/libcustom.so"
+
+# Example: Install headers
+mkdir -p "$STAGING_DIR/usr/include/custom"
+cp *.h "$STAGING_DIR/usr/include/custom/"
+
+# Example: Install configuration
+mkdir -p "$STAGING_DIR/etc/custom"
+cp config.conf "$STAGING_DIR/etc/custom/"
+```
+
+#### Control File for Custom Install
+
+When using `install.sh`, omit `Upstream-URL` and `Upstream-Ref` fields:
+
+```yaml
+Source: custom-package
+Version: 1.0.0
+Build-Depends: pkg-config
+
+Package: custom-package
+Section: utils
+Priority: optional
+Depends: ${shlibs:Depends}
+Description: Custom package with install script
+ This package uses a custom installation script.
+```
+
+#### Build Process with install.sh
+
+When `install.sh` exists:
+1. Build system skips upstream cloning
+2. Executes `install.sh` script
+3. Uses files installed to `$STAGING_DIR`
+4. Creates .deb package normally
+5. Applies debug symbol processing if applicable
+
+#### Example: Wrapper Package
+
+```bash
+#!/bin/bash
+# packages/breakpad-wrapper/install.sh
+# Wrapper package for pre-built breakpad tools
+
+set -euo pipefail
+
+mkdir -p "$STAGING_DIR/usr/lib"
+mkdir -p "$STAGING_DIR/usr/include/breakpad"
+
+# Copy pre-built libraries
+cp prebuilt/libbreakpad.a "$STAGING_DIR/usr/lib/"
+cp prebuilt/libbreakpad_client.a "$STAGING_DIR/usr/lib/"
+
+# Copy headers
+cp -r include/breakpad/* "$STAGING_DIR/usr/include/breakpad/"
+
+# Run custom header installation if needed
+if [ -f install-headers.sh ]; then
+    bash install-headers.sh "$STAGING_DIR" "$(pwd)"
+fi
+```
+
 ## Package Creation Process
+
+### Configuration Files Reference
+
+The build system supports various configuration files in `packages/<project>/`:
+
+**Required:**
+- `control` - Package metadata and dependencies
+
+**Build System Configuration:**
+- `build_system` - Force specific build system (cmake, make, autotools, meson, cargo)
+- `cmake_options` - Additional CMake flags
+- `make_options` - Additional Make variables
+- `configure_options` - Autotools configure flags
+- `env` - Environment variables to source before build
+
+**Source Management:**
+- `additional_repos` - Additional git repositories to clone
+- `patches/` - Directory containing source patches
+- `install.sh` - Custom installation script (replaces upstream build)
+
+**Package Customization:**
+- `create_debug_packages` - Control debug package creation (yes/no/true/false/1/0)
+- `install` - File installation manifest for additional files
+
+**Maintainer Scripts:**
+- `postinst` - Post-installation script
+- `preinst` - Pre-installation script
+- `prerm` - Pre-removal script
+- `postrm` - Post-removal script
+
+**Service Integration:**
+- `<project>.service` - Systemd service file
+- `<package-name>.service` - Service file for specific binary package
+
+#### Environment Variables File (env)
+
+Create `packages/<project>/env` to set environment variables before building:
+
+```bash
+# packages/myproject/env
+
+# Set custom compiler flags
+export CFLAGS="-O3 -march=native"
+export CXXFLAGS="-O3 -march=native"
+
+# Add custom library paths
+export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
+export LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
+
+# Set build options
+export ENABLE_FEATURE_X=1
+export USE_SYSTEM_LIBS=yes
+```
+
+The `env` file is sourced before the build system is invoked, allowing you to customize the build environment without modifying the build scripts.
+
+#### Debug Package Control (create_debug_packages)
+
+By default, the build system creates debug symbol packages (`-dbg`) and source packages (`-dbgsrc`) for all projects. To disable:
+
+Create `packages/<project>/create_debug_packages`:
+```
+no
+```
+
+Or:
+```
+false
+```
+
+Or:
+```
+0
+```
+
+**When to disable debug packages:**
+- Header-only libraries (no binaries to debug)
+- Wrapper packages (no source code)
+- Configuration-only packages
+- Very large binaries where debug symbols are impractical
+
+**Example: Disabling debug packages for wrapper**
+```bash
+# packages/breakpad-wrapper/create_debug_packages
+no
+```
+
+This will:
+- Skip debug symbol extraction
+- Skip creating `-dbg` package
+- Skip creating `-dbgsrc` package
+- Reduce build time and artifact size
+
+#### File Installation Manifest (install)
+
+The `install` file specifies additional files to install that aren't handled by the build system's `make install` or `cmake install`.
+
+Create `packages/<project>/install` with destination paths (one per line):
+
+```
+# packages/myproject/install
+
+# Install additional configuration
+/etc/myproject/config.conf
+
+# Install systemd unit (alternative to .service file)
+/lib/systemd/system/myproject.service
+
+# Install udev rules
+/etc/udev/rules.d/99-myproject.rules
+
+# Install documentation
+/usr/share/doc/myproject/README.md
+```
+
+**How it works:**
+1. Build system looks for source file with same basename in `packages/<project>/`
+2. Copies file to specified destination in package
+3. Creates parent directories automatically
+4. Only applied to runtime packages (not -dev, -dbg, -dbgsrc)
+
+**Example:**
+If `install` contains `/etc/myproject/config.conf`, the build system:
+1. Looks for `packages/<project>/config.conf`
+2. Copies it to package at `/etc/myproject/config.conf`
+
+This is useful for:
+- Configuration files
+- Systemd service files (alternative to auto-detection)
+- Udev rules
+- Init scripts
+- Documentation files
+- Shell completion scripts
 
 ### Control File Parsing
 
@@ -1037,21 +1275,240 @@ jobs:
           files: '**/*.deb'
 ```
 
-### Package Repository Integration
+### APT Repository Creation
 
-For setting up an APT repository:
+The system includes a comprehensive script for creating production-ready APT repositories.
 
+#### Using create-apt-repository.sh
+
+**Basic Usage:**
 ```bash
-# Create repository structure
-mkdir -p repo/pool/main
-cp *.deb repo/pool/main/
+# Create repository for arm64 packages
+./scripts/create-apt-repository.sh arm64 ./apt-repo
 
-# Generate Packages file
-cd repo
-dpkg-scanpackages pool /dev/null | gzip -9c > pool/Packages.gz
+# Create repository for amd64 packages
+./scripts/create-apt-repository.sh amd64 ./apt-repo
 
-# Create Release file
-apt-ftparchive release . > Release
+# Default (arm64, ./apt-repo)
+./scripts/create-apt-repository.sh
+```
+
+**What it does:**
+1. Creates proper Debian repository structure
+2. Organizes packages by first letter in pool/
+3. Generates compressed Packages index files
+4. Creates Release file with checksums (MD5, SHA1, SHA256)
+5. Generates hosting instructions and usage guide
+
+**Repository Structure Created:**
+```
+apt-repo/
+├── README.md                    # Usage instructions
+├── dists/
+│   └── stable/
+│       ├── Release              # Repository metadata
+│       └── main/
+│           └── binary-arm64/
+│               ├── Packages     # Package index
+│               └── Packages.gz  # Compressed index
+└── pool/
+    └── main/
+        ├── l/
+        │   └── libnanomsg/
+        │       └── libnanomsg_1.0.0_arm64.deb
+        ├── r/
+        │   └── rbus/
+        │       ├── rbus_2.7.0_arm64.deb
+        │       └── librbus-dev_2.7.0_arm64.deb
+        └── ...
+```
+
+#### Docker Fallback Support
+
+The script automatically detects if `dpkg-scanpackages` is available:
+- **Linux:** Uses local dpkg-dev tools
+- **macOS:** Falls back to Docker if tools not installed
+
+#### Hosting the Repository
+
+**Option 1: Simple HTTP Server (Testing)**
+```bash
+cd apt-repo
+python3 -m http.server 8080
+
+# Repository URL: http://localhost:8080
+```
+
+**Option 2: Nginx (Production)**
+```nginx
+server {
+    listen 80;
+    server_name packages.example.com;
+    root /var/www/apt-repo;
+    
+    location / {
+        autoindex on;
+        autoindex_exact_size off;
+        autoindex_localtime on;
+    }
+}
+```
+
+**Option 3: Apache (Production)**
+```apache
+<VirtualHost *:80>
+    ServerName packages.example.com
+    DocumentRoot /var/www/apt-repo
+    
+    <Directory /var/www/apt-repo>
+        Options +Indexes +FollowSymLinks
+        AllowOverride None
+        Require all granted
+    </Directory>
+</VirtualHost>
+```
+
+**Option 4: GitHub Pages**
+```bash
+# Push apt-repo directory to gh-pages branch
+git checkout --orphan gh-pages
+cp -r apt-repo/* .
+git add .
+git commit -m "Add APT repository"
+git push origin gh-pages
+
+# Repository URL: https://username.github.io/repo-name
+```
+
+#### Using the Repository
+
+**Add to client systems:**
+```bash
+# Add repository source
+echo "deb [arch=arm64] http://packages.example.com/apt-repo stable main" | \
+    sudo tee /etc/apt/sources.list.d/custom-packages.list
+
+# Update package index
+sudo apt-get update
+
+# Install packages
+sudo apt-get install rbus librbus-dev
+```
+
+**With GPG signing (recommended for production):**
+```bash
+# On repository server - generate and sign
+gpg --gen-key
+gpg --armor --export your-email@example.com > apt-repo/KEY.gpg
+
+cd apt-repo/dists/stable
+gpg --clearsign -o InRelease Release
+gpg -abs -o Release.gpg Release
+
+# On client - add GPG key
+wget -qO - http://packages.example.com/apt-repo/KEY.gpg | \
+    sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/custom-packages.gpg
+
+# Now add repository and update
+echo "deb [arch=arm64] http://packages.example.com/apt-repo stable main" | \
+    sudo tee /etc/apt/sources.list.d/custom-packages.list
+sudo apt-get update
+```
+
+#### Updating the Repository
+
+After building new packages:
+```bash
+# Copy new .deb files to current directory
+cp *.deb .
+
+# Regenerate repository
+./scripts/create-apt-repository.sh arm64 apt-repo
+
+# Re-sign if using GPG
+cd apt-repo/dists/stable
+gpg --clearsign -o InRelease Release
+gpg -abs -o Release.gpg Release
+cd ../../..
+
+# Sync to web server
+rsync -av apt-repo/ user@server:/var/www/apt-repo/
+```
+
+#### Multi-Architecture Repository
+
+To support multiple architectures in one repository:
+```bash
+# Build and create repo for arm64
+./scripts/create-apt-repository.sh arm64 apt-repo
+
+# Build and add amd64 packages
+# (ensure amd64 .deb files are in current directory)
+./scripts/create-apt-repository.sh amd64 apt-repo
+```
+
+Then update the Release file to list both architectures:
+```
+Architectures: arm64 amd64
+```
+
+#### Repository Automation Script
+
+For continuous updates, create an automation script:
+```bash
+#!/bin/bash
+# update-repo.sh - Automated repository updates
+
+set -euo pipefail
+
+REPO_DIR="/var/www/apt-repo"
+ARCH="arm64"
+
+# Download latest packages from CI
+# (example: from GitHub releases)
+gh release download --pattern "*.deb" latest
+
+# Create/update repository
+./scripts/create-apt-repository.sh "$ARCH" "$REPO_DIR"
+
+# Sign repository
+cd "$REPO_DIR/dists/stable"
+gpg --clearsign -o InRelease Release
+gpg -abs -o Release.gpg Release
+
+# Clean up
+cd -
+rm -f *.deb
+
+echo "Repository updated successfully"
+```
+
+#### Repository Testing
+
+**Verify repository structure:**
+```bash
+# Check Packages file
+zcat apt-repo/dists/stable/main/binary-arm64/Packages.gz | less
+
+# Check Release file
+cat apt-repo/dists/stable/Release
+
+# Verify package can be found
+grep -A 10 "Package: rbus" \
+    <(zcat apt-repo/dists/stable/main/binary-arm64/Packages.gz)
+```
+
+**Test installation in container:**
+```bash
+docker run -it --rm \
+    -v $(pwd)/apt-repo:/repo \
+    ubuntu:20.04 bash
+
+# Inside container:
+echo "deb [arch=arm64 trusted=yes] file:///repo stable main" > \
+    /etc/apt/sources.list.d/local.list
+apt-get update
+apt-get install -y rbus
 ```
 
 ## Reference Documentation
@@ -1103,6 +1560,297 @@ apt-ftparchive release . > Release
 - **shlibdeps:** Tool for detecting shared library dependencies
 - **strip:** Tool for removing debug symbols from binaries
 
+## Automated Batch Building
+
+The system includes Python scripts for building all packages in dependency order, eliminating the need to build packages individually.
+
+### Build Scripts Overview
+
+**Two build scripts are available:**
+
+1. **`build-packages.py`** - Builds packages in Docker containers
+   - Uses Docker with QEMU for multi-architecture builds
+   - Creates a persistent container for all builds
+   - Best for CI/CD and cross-platform builds
+
+2. **`build-packages-local.py`** - Builds packages locally without Docker
+   - Runs directly in current environment
+   - Faster for local development
+   - Requires all build tools installed locally
+
+### Key Features
+
+**Dependency Resolution:**
+- Automatically parses `Build-Depends` from control files
+- Builds packages in correct order using topological sort
+- Handles circular dependencies with error reporting
+- Filters system packages vs. custom packages
+
+**Smart Package Management:**
+- Installs each package after building
+- Makes it available for subsequent dependent builds
+- Generates shlibs files for dependency resolution
+
+**Progress Tracking:**
+- Shows build order before starting
+- Progress indicators for each package
+- Summary report at completion
+- Individual log files per package
+
+### Using build-packages.py (Docker-based)
+
+**Basic Usage:**
+```bash
+# Build all packages for arm64
+python3 scripts/build-packages.py --platform arm64
+
+# Build for amd64
+python3 scripts/build-packages.py --platform amd64
+
+# Dry-run to see build order
+python3 scripts/build-packages.py --dry-run
+```
+
+**Advanced Options:**
+```bash
+# Set timeout per package (default: 600s)
+python3 scripts/build-packages.py --timeout 900
+
+# Save all build logs to a single file
+python3 scripts/build-packages.py --log-file build.log
+
+# Rebuild packages even if .deb files exist
+python3 scripts/build-packages.py --rebuild-existing
+
+# Force re-cloning source even if it already exists
+python3 scripts/build-packages.py --force-source
+
+# Build only a specific package (without dependencies)
+python3 scripts/build-packages.py --package rbus
+```
+
+**Command-Line Options:**
+- `--platform ARCH` - Architecture to build (arm64, amd64)
+- `--timeout SECONDS` - Timeout per package (default: 600)
+- `--log-file PATH` - Save logs to file instead of stdout
+- `--rebuild-existing` - Rebuild packages even if .deb files exist (default: skip existing)
+- `--force-source` - Force re-cloning source (default: reuse if exists)
+- `--package NAME` - Build only specified package
+- `--dry-run` - Show build order without building
+- `--help, -h` - Show help message
+
+### Using build-packages-local.py (Local builds)
+
+**Basic Usage:**
+```bash
+# Build all packages locally
+python3 scripts/build-packages-local.py --platform arm64
+
+# Skip packages with existing .deb files
+python3 scripts/build-packages-local.py --skip-existing
+
+# Build single package
+python3 scripts/build-packages-local.py --package libnanomsg
+```
+
+**Additional Options:**
+```bash
+# Set timeout per package (default: 600s)
+python3 scripts/build-packages-local.py --timeout 900
+
+# Save all build logs to a single file
+python3 scripts/build-packages-local.py --log-file build.log
+
+# Rebuild packages even if .deb files exist
+python3 scripts/build-packages-local.py --rebuild-existing
+
+# Force re-cloning source even if it already exists
+python3 scripts/build-packages-local.py --force-source
+
+# Build single package
+python3 scripts/build-packages-local.py --package libnanomsg
+```
+
+**Command-Line Options:**
+- `--platform ARCH` - Architecture (default: arm64)
+- `--timeout SECONDS` - Timeout per package (default: 600)
+- `--log-file PATH` - Save logs to file
+- `--rebuild-existing` - Rebuild packages even if .deb files exist (default: skip existing)
+- `--force-source` - Force re-cloning source (default: reuse if exists)
+- `--package NAME` - Build only specified package
+- `--dry-run` - Show build order only
+- `--help, -h` - Show help
+
+**Note on Source Management:**
+By default, the build system will **reuse existing source directories** (`source/<project>/`) if they exist. This speeds up iterative builds and allows you to make manual changes to source for testing. Use `--force-source` only when you need to ensure a clean clone from upstream.
+
+**Note on Package Skipping:**
+By default, the build system will **skip packages that already have .deb files**. This allows you to resume interrupted builds or rebuild only changed packages. Use `--rebuild-existing` to force rebuilding all packages regardless of existing files.
+
+### Dependency Parsing Rules
+
+**System Packages (Auto-installed from apt):**
+- `gcc`, `make`, `cmake`, `meson`, `ninja-build`, `python3-pip`
+- `pkg-config`, `perl`
+- `zlib1g-dev`, `libssl-dev`, `libcurl4-openssl-dev`
+- `uuid-dev`, `libcjson-dev`, `libmsgpack-dev`
+- `libjansson-dev`, `liblog4c-dev`, `libdbus-1-dev`
+
+**Custom Packages (Built from this repository):**
+- Any package not in the system list
+- Automatically mapped: `lib<name>-dev` → `<name>`
+- Example: `librbus-dev` dependency maps to `rbus` package
+
+**Special Handling:**
+- `cargo` or `rustc` triggers Rust installation via rustup
+- Custom packages are installed from .deb files
+- Binary package names mapped to source package names
+
+### Build Process Flow
+
+```
+1. Parse all control files
+   ↓
+2. Build dependency graph
+   ↓
+3. Topological sort (find build order)
+   ↓
+4. Start persistent Docker container (if using build-packages.py)
+   ↓
+5. For each package in order:
+   a. Install build dependencies
+   b. Build package
+   c. Install package for next builds
+   d. Log success/failure
+   ↓
+6. Stop container (if Docker)
+   ↓
+7. Display summary report
+```
+
+### Example Output
+
+```
+ℹ ============================================================
+ℹ Building all packages in dependency order
+ℹ Platform: arm64 (linux/arm64)
+ℹ Timeout per package: 600s
+ℹ ============================================================
+ℹ Analyzing package dependencies...
+ℹ Calculating build order...
+
+ℹ Dependency Graph:
+ℹ   libnanomsg (no custom dependencies)
+ℹ   liblinenoise (no custom dependencies)
+ℹ   librdk-logger (no custom dependencies)
+ℹ   rbus depends on: liblinenoise, librdk-logger
+ℹ   parodus depends on: rbus
+
+ℹ Build order: libnanomsg → liblinenoise → librdk-logger → rbus → parodus
+
+ℹ Total packages to build: 5
+ℹ ============================================================
+
+[1/5] Building libnanomsg...
+✓ [1/5] ✓ libnanomsg built successfully
+
+[2/5] Building liblinenoise...
+✓ [2/5] ✓ liblinenoise built successfully
+
+[3/5] Building librdk-logger...
+✓ [3/5] ✓ librdk-logger built successfully
+
+[4/5] Building rbus...
+✓ [4/5] ✓ rbus built successfully
+
+[5/5] Building parodus...
+✓ [5/5] ✓ parodus built successfully
+
+ℹ ============================================================
+ℹ Build Summary
+ℹ ============================================================
+✓ Succeeded: 5/5
+  ✓ libnanomsg
+  ✓ liblinenoise
+  ✓ librdk-logger
+  ✓ rbus
+  ✓ parodus
+
+✓ All packages built successfully!
+```
+
+### Troubleshooting Build Scripts
+
+**Issue:** "Circular dependency detected"
+
+**Cause:** Two or more packages have circular Build-Depends
+
+**Solution:** Review Build-Depends fields, ensure DAG structure
+
+---
+
+**Issue:** Build fails but continues to next package
+
+**Cause:** By design, script stops on first failure
+
+**Solution:** Check individual package logs in `/tmp/build-<package>.log`
+
+---
+
+**Issue:** "Package not found" when building single package
+
+**Cause:** Package name doesn't match directory in packages/
+
+**Solution:** List available packages with `--dry-run`
+
+---
+
+**Issue:** Docker container fails to start
+
+**Cause:** Docker not running or QEMU not configured
+
+**Solution:** 
+```bash
+# Check Docker
+docker ps
+
+# Install QEMU support
+docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+```
+
+---
+
+**Issue:** Local build fails with missing tools
+
+**Cause:** Build dependencies not installed locally
+
+**Solution:** Use Docker-based script or install all build tools:
+```bash
+sudo apt-get install -y build-essential cmake pkg-config \
+  git file binutils dpkg-dev
+```
+
+### Build Script Architecture
+
+**Persistent Container Strategy (`build-packages.py`):**
+- Single container for all builds
+- Faster than creating container per package
+- State preserved between builds
+- Installed packages available for dependencies
+- Container auto-cleanup on completion/failure
+
+**Dependency Graph Algorithm:**
+- Kahn's algorithm for topological sort
+- Reverse graph construction for proper ordering
+- Cycle detection with diagnostic output
+- Alphabetical ordering for deterministic builds
+
+**Binary Package Mapping:**
+- Parses control files to find all `Package:` sections
+- Maps binary package names to source packages
+- Used for `--skip-existing` functionality
+- Example: `rbus` and `librbus-dev` both from `rbus` source
+
 ## Migration Guide
 
 To adopt this system for a new project:
@@ -1113,12 +1861,13 @@ To adopt this system for a new project:
 4. **Add build configuration:** `build_system`, options files if needed
 5. **Add patches:** If source modifications needed
 6. **Add service file:** If project includes a daemon
-7. **Test locally:** Use `act` to verify build
-8. **Push and test:** Verify CI build
-9. **Create release:** Tag and release packages
+7. **Test locally:** Use `scripts/build-packages-local.py --package <project>`
+8. **Test batch build:** Use `scripts/build-packages-local.py --dry-run` to verify dependency order
+9. **Push and test:** Verify CI build
+10. **Create release:** Tag and release packages
 
 ---
 
-**System Version:** 1.0  
-**Last Updated:** December 2025  
+**System Version:** 1.1  
+**Last Updated:** January 2026  
 **Maintained by:** Package Workflows Team

@@ -1,18 +1,18 @@
-name: Package nopoll
+name: Package uci
 
 on:
   push:
     branches: [ main ]
     paths:
-      - 'packages/nopoll/**'
+      - 'packages/uci/**'
       - 'scripts/**'
-      - '.github/workflows/package-nopoll.yml'
+      - '.github/workflows/package-uci.yml'
   pull_request:
     branches: [ main ]
     paths:
-      - 'packages/nopoll/**'
+      - 'packages/uci/**'
       - 'scripts/**'
-      - '.github/workflows/package-nopoll.yml'
+      - '.github/workflows/package-uci.yml'
   workflow_dispatch:
 
 jobs:
@@ -27,7 +27,7 @@ jobs:
             docker_platform: linux/amd64
     
     runs-on: ubuntu-latest
-    name: Build nopoll for ${{ matrix.platform }}
+    name: Build uci for ${{ matrix.platform }}
     
     steps:
       - name: Checkout repository
@@ -46,10 +46,20 @@ jobs:
             ubuntu:20.04 \
             bash -c '
               set -euo pipefail
-
+                            
               # Source build helpers
               source scripts/build-helpers/build-common.sh
-
-              install_build_dependencies nopoll
-              build_package nopoll ${{ matrix.platform }}
+              
+              # Install dependencies for this package
+              install_build_dependencies uci
+              
+              # Build the package
+              build_package uci ${{ matrix.platform }}
             '
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: uci-${{ matrix.platform }}-packages
+          path: '*.deb'
+          if-no-files-found: error

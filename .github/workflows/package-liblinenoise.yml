@@ -1,11 +1,11 @@
-name: Package linenoise
+name: Package liblinenoise
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - 'packages/linenoise/**'
-      - '.github/workflows/package-linenoise.yml'
+      - 'packages/liblinenoise/**'
+      - '.github/workflows/package-liblinenoise.yml'
 
 jobs:
   build:
@@ -26,7 +26,7 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       
-      - name: Build linenoise for ${{ matrix.platform }}
+      - name: Build liblinenoise for ${{ matrix.platform }}
         run: |
           docker run --rm --platform=${{ matrix.docker_platform }} \
             -v $PWD:/workspace \
@@ -35,6 +35,6 @@ jobs:
             bash -c '
               
               source scripts/build-helpers/build-common.sh
-              install_build_dependencies linenoise
-              build_package linenoise ${{ matrix.platform }}
+              install_build_dependencies liblinenoise
+              build_package liblinenoise ${{ matrix.platform }}
             '

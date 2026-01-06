@@ -1,0 +1,27 @@
+Source: uci
+Version: 2025.01.05
+Upstream-URL: https://github.com/openwrt/uci.git
+Upstream-Ref: 66127cd76c5d0bd46d5a90302cc6110f53a4e2f8
+Build-Depends: pkg-config, libubox
+
+Package: uci
+Section: utils
+Priority: optional
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: OpenWrt Unified Configuration Interface - runtime
+ UCI is a small C library for parsing and manipulating configuration
+ files in the UCI format. The UCI format is used by OpenWrt for its
+ configuration files. It provides a simple, text-based configuration
+ system with a hierarchical structure.
+ .
+ This package contains the runtime library and command-line utility.
+
+Package: libuci-dev
+Section: libdevel
+Priority: optional
+Depends: uci (= ${version})
+Description: OpenWrt Unified Configuration Interface - development files
+ UCI is a small C library for parsing and manipulating configuration
+ files in the UCI format.
+ .
+ This package contains the development headers and static libraries.

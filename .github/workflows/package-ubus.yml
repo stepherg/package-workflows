@@ -1,18 +1,18 @@
-name: Package wrp-c
+name: Package ubus
 
 on:
   push:
     branches: [ main ]
     paths:
-      - 'packages/wrp-c/**'
+      - 'packages/ubus/**'
       - 'scripts/**'
-      - '.github/workflows/package-wrp-c.yml'
+      - '.github/workflows/package-ubus.yml'
   pull_request:
     branches: [ main ]
     paths:
-      - 'packages/wrp-c/**'
+      - 'packages/ubus/**'
       - 'scripts/**'
-      - '.github/workflows/package-wrp-c.yml'
+      - '.github/workflows/package-ubus.yml'
   workflow_dispatch:
 
 jobs:
@@ -27,7 +27,7 @@ jobs:
             docker_platform: linux/amd64
     
     runs-on: ubuntu-latest
-    name: Build wrp-c for ${{ matrix.platform }}
+    name: Build ubus for ${{ matrix.platform }}
     
     steps:
       - name: Checkout repository
@@ -46,11 +46,22 @@ jobs:
             ubuntu:20.04 \
             bash -c '
               set -euo pipefail
-              
+                            
               # Source build helpers
               source scripts/build-helpers/build-common.sh
-              install_build_dependencies wrp-c
-
-              # Build package
-              build_package wrp-c ${{ matrix.platform }}
+              
+              # Install dependencies for this package
+              install_build_dependencies ubus
+              
+              # Build the package
+              build_package ubus ${{ matrix.platform }}
             '
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubus-${{ matrix.platform }}
+          path: |
+            *.deb
+            *.ddeb
+          if-no-files-found: error

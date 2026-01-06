@@ -1367,17 +1367,17 @@ EOF
 }
 
 # Main build orchestration function
-# Args: $1 = project name, $2 = architecture, $3 = upstream ref (optional, from workflow input), $4 = --skip-source flag (optional)
+# Args: $1 = project name, $2 = architecture, $3 = upstream ref (optional, from workflow input), $4 = --force-source flag (optional)
 build_package() {
     local project=$1
     local arch=$2
     local upstream_ref_override=${3:-""}
-    local skip_source=false
+    local force_source=false
 
-    # Check for --skip-source flag in any position
-    if [[ "$3" == "--skip-source" ]] || [[ "${4:-}" == "--skip-source" ]]; then
-        skip_source=true
-        log_info "Skipping source clone and patching (using existing source/$project)"
+    # Check for --force-source flag in any position to force re-cloning even if source exists
+    if [[ "$3" == "--force-source" ]] || [[ "${4:-}" == "--force-source" ]]; then
+        force_source=true
+        log_info "Force re-cloning source (--force-source flag set)"
     fi
 
     log_info "========================================="
@@ -1438,9 +1438,14 @@ build_package() {
 
     cd /workspace
 
-    # Clone upstream repository and apply patches (unless skipped)
-    # [ "$skip_source" = false ]
-    if [ ! -d "source/$project" ]; then
+    # Clone upstream repository and apply patches
+    # Skip if source already exists unless --force-source is set
+    if [ ! -d "source/$project" ] || [ "$force_source" = true ]; then
+        if [ "$force_source" = true ] && [ -d "source/$project" ]; then
+            log_info "Removing existing source directory (--force-source)"
+            rm -rf "source/$project"
+        fi
+
         clone_upstream "$project" "$upstream_url" "$upstream_ref"
 
         # Apply patches
@@ -1450,6 +1455,8 @@ build_package() {
         # Clone additional repositories
         clone_additional_repos "$project"
         popd
+    else
+        log_info "Source directory already exists, skipping clone and patch (use --force-source to override)"
     fi
 
     cd "source/$project"

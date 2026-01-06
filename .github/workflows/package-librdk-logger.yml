@@ -1,4 +1,4 @@
-name: Package rdk-logger
+name: Package librdk-logger
 
 on:
   workflow_dispatch:
@@ -10,8 +10,8 @@ on:
   
   push:
     paths:
-      - 'packages/rdk-logger/**'
-      - '.github/workflows/package-rdk-logger.yml'
+      - 'packages/librdk-logger/**'
+      - '.github/workflows/package-librdk-logger.yml'
       - 'scripts/build-helpers/**'
 
 permissions:
@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   build:
-    name: Build rdk-logger for ${{ matrix.platform }}
+    name: Build librdk-logger for ${{ matrix.platform }}
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
@@ -51,9 +51,9 @@ jobs:
 
               # Source build helpers
               source scripts/build-helpers/build-common.sh
-              install_build_dependencies rdk-logger
+              install_build_dependencies librdk-logger
               
               # Build package (with optional upstream ref override)
               UPSTREAM_REF="${{ inputs.upstream_ref }}"
-              build_package "rdk-logger" "${{ matrix.platform }}" "$UPSTREAM_REF"
+              build_package "librdk-logger" "${{ matrix.platform }}" "$UPSTREAM_REF"
             '

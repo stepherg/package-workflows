@@ -64,23 +64,27 @@ def parse_control_file(control_path: Path) -> Tuple[Optional[str], Set[str]]:
         # Filter out system packages (common ones that end with -dev)
         system_packages = {
             'gcc', 'make', 'cmake', 'meson', 'ninja-build', 'python3-pip',
-            'perl', 'pkg-config',
+            'perl', 'pkg-config', 'pkgconf', 'debhelper-compat',
             'zlib1g-dev', 'libdbus-1-dev', 'libssl-dev', 'openssl-dev',
             'libcurl4-openssl-dev', 'curl4-openssl-dev',
             'uuid-dev', 'libcjson-dev', 'libmsgpack-dev', 'libmsgpackc2',
-            'libjansson-dev', 'liblog4c-dev'
+            'libjansson-dev', 'liblog4c-dev', 'liblog4c3',
+            'libxml2-dev', 'libspdlog-dev', 'libprotobuf-dev',
+            'protobuf-compiler', 'grpc++', 'libgrpc++-dev',
+            'libjson-c-dev', 'build-essential', 'autoconf', 'automake',
+            'libtool', 'cargo', 'rustc'
         }
         
         if dep and dep not in system_packages:
-            # Map dev packages to base package names for our custom packages
-            # This maps libsafec-dev -> safec, librbus-dev -> rbus, etc.
+            # Map dev packages to base package names
+            # For -dev packages, try removing -dev suffix
+            original_dep = dep
             if dep.endswith('-dev'):
                 dep = dep[:-4]  # Remove -dev
-                if dep.startswith('lib'):
-                    dep = dep[3:]  # Remove lib
             deps.add(dep)
     
     return package_name, deps
+
 
 def get_workflow_file(package_name: str, workflows_dir: Path) -> Optional[Path]:
     """Find the workflow file for a package."""
@@ -88,6 +92,7 @@ def get_workflow_file(package_name: str, workflows_dir: Path) -> Optional[Path]:
     if workflow_file.exists():
         return workflow_file
     return None
+
 
 def get_binary_package_names(package_name: str, packages_dir: Path) -> List[str]:
     """
@@ -185,7 +190,8 @@ def topological_sort(graph: Dict[str, Set[str]]) -> List[str]:
     
     return result
 
-def build_package(package_name: str, platform: str, timeout_seconds: int, output_file=None, skip_source: bool = False) -> bool:
+
+def build_package(package_name: str, platform: str, timeout_seconds: int, output_file=None, force_source: bool = False) -> bool:
     """
     Build a single package locally (no container).
     Returns True on success, False on failure.
@@ -196,12 +202,12 @@ def build_package(package_name: str, platform: str, timeout_seconds: int, output
     timeout_cmd = "gtimeout" if sys.platform == "darwin" else "timeout"
 
     # Build the bash script
-    skip_source_flag = "--skip-source" if skip_source else ""
+    force_source_flag = "--force-source" if force_source else ""
     bash_script = (
         "set -euo pipefail && "
         "source scripts/build-helpers/build-common.sh && "
         f"install_build_dependencies {package_name} && "
-        f"build_package {package_name} {platform} '' {skip_source_flag}"
+        f"build_package {package_name} {platform} '' {force_source_flag}"
     )
 
     # timeout_cmd, str(timeout_seconds),
@@ -268,9 +274,9 @@ def main():
     timeout_seconds = 600
     dry_run = False
     log_file = None
-    skip_existing = False
+    skip_existing = True
     single_package = None
-    skip_source = False
+    force_source = False
 
     if "--help" in sys.argv or "-h" in sys.argv:
         print("Usage: build-packages-local.py [OPTIONS]")
@@ -278,12 +284,13 @@ def main():
         print("  --platform ARCH       Platform to build for (default: arm64)")
         print("  --timeout SECONDS     Timeout per package in seconds (default: 600)")
         print("  --log-file PATH      Save build logs to file instead of stdout")
-        print("  --skip-existing      Skip building packages that already have .deb files")
-        print("  --skip-source        Skip cloning and patching source (use existing source-* dirs)")
+        print("  --rebuild-existing   Rebuild packages even if .deb files already exist")
+        print("  --force-source       Force re-cloning and patching source even if it exists")
         print("  --package NAME       Build only the specified package (without dependencies)")
         print("  --dry-run            Show build order without building")
         print("  --help, -h           Show this help message")
-        print("\nNote: This script runs builds locally without creating a container.")
+        print("\nNote: By default, packages with existing .deb files are skipped.")
+        print("      This script runs builds locally without creating a container.")
         print("      Make sure you're in the correct build environment before running.")
         sys.exit(0)
 
@@ -299,11 +306,11 @@ def main():
         idx = sys.argv.index("--log-file")
         log_file = sys.argv[idx + 1]
 
-    if "--skip-existing" in sys.argv:
-        skip_existing = True
+    if "--rebuild-existing" in sys.argv:
+        skip_existing = False
 
-    if "--skip-source" in sys.argv:
-        skip_source = True
+    if "--force-source" in sys.argv:
+        force_source = True
 
     if "--package" in sys.argv:
         idx = sys.argv.index("--package")
@@ -398,7 +405,7 @@ def main():
         #    failed.append(package_name)
         #    break
 
-        if build_package(package_name, platform, timeout_seconds, log_file, skip_source):
+        if build_package(package_name, platform, timeout_seconds, log_file, force_source):
             log_success(f"[{idx}/{len(build_order)}] ✓ {package_name} built successfully")
             succeeded.append(package_name)
         else:

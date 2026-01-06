@@ -1,18 +1,18 @@
-name: Package webconfig-framework
+name: Package libsafec
 
 on:
   push:
     branches: [ main ]
     paths:
-      - 'packages/webconfig-framework/**'
+      - 'packages/libsafec/**'
       - 'scripts/**'
-      - '.github/workflows/package-webconfig-framework.yml'
+      - '.github/workflows/package-libsafec.yml'
   pull_request:
     branches: [ main ]
     paths:
-      - 'packages/webconfig-framework/**'
+      - 'packages/libsafec/**'
       - 'scripts/**'
-      - '.github/workflows/package-webconfig-framework.yml'
+      - '.github/workflows/package-libsafec.yml'
   workflow_dispatch:
 
 jobs:
@@ -27,7 +27,7 @@ jobs:
             docker_platform: linux/amd64
     
     runs-on: ubuntu-latest
-    name: Build webconfig-framework for ${{ matrix.platform }}
+    name: Build libsafec for ${{ matrix.platform }}
     
     steps:
       - name: Checkout repository
@@ -36,23 +36,21 @@ jobs:
       - name: Set up QEMU for multi-arch builds
         uses: docker/setup-qemu-action@v3
         with:
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.docker_platform }}
 
       - name: Build package in Docker
         run: |
           docker run --rm --platform=${{ matrix.docker_platform }} \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
-            ubuntu:20.04 \
+            debian:bookworm \
             bash -c '
               set -euo pipefail
-                            
+
               # Source build helpers
               source scripts/build-helpers/build-common.sh
+              install_build_dependencies libsafec
               
-              # Install dependencies for this package
-              install_build_dependencies webconfig-framework
-              
-              # Build the package
-              build_package webconfig-framework ${{ matrix.platform }}
+              # Build package
+              build_package libsafec ${{ matrix.platform }}
             '

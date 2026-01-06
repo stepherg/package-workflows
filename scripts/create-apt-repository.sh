@@ -111,12 +111,28 @@ gzip -9c "$DISTS_DIR/Packages" > "$DISTS_DIR/Packages.gz"
 
 # Generate Release file for the distribution
 log_info "Generating Release file..."
+
+# Check if Release file exists and extract existing architectures
+EXISTING_ARCHS=""
+if [ -f "$REPO_ROOT/dists/$DIST/Release" ]; then
+    EXISTING_ARCHS=$(grep "^Architectures:" "$REPO_ROOT/dists/$DIST/Release" 2>/dev/null | sed 's/^Architectures: *//' || echo "")
+fi
+
+# Add current architecture if not already present
+if [ -z "$EXISTING_ARCHS" ]; then
+    ALL_ARCHS="$ARCH"
+elif ! echo "$EXISTING_ARCHS" | grep -qw "$ARCH"; then
+    ALL_ARCHS="$EXISTING_ARCHS $ARCH"
+else
+    ALL_ARCHS="$EXISTING_ARCHS"
+fi
+
 cat > "$REPO_ROOT/dists/$DIST/Release" << EOF
 Origin: RDK/XMiDT Packages
 Label: RDK/XMiDT Packages
 Suite: $DIST
 Codename: $DIST
-Architectures: $ARCH
+Architectures: $ALL_ARCHS
 Components: $COMPONENT
 Description: RDK and XMiDT component packages
 Date: $(date -u "+%a, %d %b %Y %H:%M:%S %z")
@@ -204,8 +220,12 @@ Add the repository to your system:
 
 ```bash
 # Add repository (replace URL with your server)
-echo "deb [arch=arm64] http://your-server-url/apt-repo stable main" | \
+echo "deb [arch=arm64] https://stepherg.github.io/package-workflows stable main" | \
     sudo tee /etc/apt/sources.list.d/custom-packages.list
+
+# Download and import the public key
+wget -qO - https://stepherg.github.io/package-workflows/KEY.gpg | \
+   gpg --dearmor -o /etc/apt/trusted.gpg.d/custom-packages.gpg
 
 # If you have a GPG key (optional but recommended):
 # wget -qO - http://your-server-url/apt-repo/KEY.gpg | sudo apt-key add -

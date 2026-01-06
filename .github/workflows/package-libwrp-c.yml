@@ -1,18 +1,18 @@
-name: Package trower-base64
+name: Package libwrp-c
 
 on:
   push:
     branches: [ main ]
     paths:
-      - 'packages/trower-base64/**'
+      - 'packages/libwrp-c/**'
       - 'scripts/**'
-      - '.github/workflows/package-trower-base64.yml'
+      - '.github/workflows/package-libwrp-c.yml'
   pull_request:
     branches: [ main ]
     paths:
-      - 'packages/trower-base64/**'
+      - 'packages/libwrp-c/**'
       - 'scripts/**'
-      - '.github/workflows/package-trower-base64.yml'
+      - '.github/workflows/package-libwrp-c.yml'
   workflow_dispatch:
 
 jobs:
@@ -27,7 +27,7 @@ jobs:
             docker_platform: linux/amd64
     
     runs-on: ubuntu-latest
-    name: Build trower-base64 for ${{ matrix.platform }}
+    name: Build libwrp-c for ${{ matrix.platform }}
     
     steps:
       - name: Checkout repository
@@ -49,8 +49,8 @@ jobs:
               
               # Source build helpers
               source scripts/build-helpers/build-common.sh
-              install_build_dependencies trower-base64
-              
+              install_build_dependencies libwrp-c
+
               # Build package
-              build_package trower-base64 ${{ matrix.platform }}
+              build_package libwrp-c ${{ matrix.platform }}
             '

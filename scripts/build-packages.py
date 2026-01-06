@@ -4,7 +4,6 @@ Build all packages in dependency order using topological sort.
 Reads Build-Depends from control files and builds packages in the correct order.
 """
 
-import os
 import sys
 import subprocess
 import re
@@ -63,23 +62,27 @@ def parse_control_file(control_path: Path) -> Tuple[Optional[str], Set[str]]:
         # Filter out system packages (common ones that end with -dev)
         system_packages = {
             'gcc', 'make', 'cmake', 'meson', 'ninja-build', 'python3-pip',
-            'perl', 'pkg-config',
+            'perl', 'pkg-config', 'pkgconf', 'debhelper-compat',
             'zlib1g-dev', 'libdbus-1-dev', 'libssl-dev', 'openssl-dev',
             'libcurl4-openssl-dev', 'curl4-openssl-dev',
             'uuid-dev', 'libcjson-dev', 'libmsgpack-dev', 'libmsgpackc2',
-            'libjansson-dev', 'liblog4c-dev'
+            'libjansson-dev', 'liblog4c-dev', 'liblog4c3',
+            'libxml2-dev', 'libspdlog-dev', 'libprotobuf-dev',
+            'protobuf-compiler', 'grpc++', 'libgrpc++-dev',
+            'libjson-c-dev', 'build-essential', 'autoconf', 'automake',
+            'libtool', 'cargo', 'rustc'
         }
         
         if dep and dep not in system_packages:
-            # Map dev packages to base package names for our custom packages
-            # This maps libsafec-dev -> safec, librbus-dev -> rbus, etc.
+            # Map dev packages to base package names
+            # For -dev packages, try removing -dev suffix
+            original_dep = dep
             if dep.endswith('-dev'):
                 dep = dep[:-4]  # Remove -dev
-                if dep.startswith('lib'):
-                    dep = dep[3:]  # Remove lib
             deps.add(dep)
     
     return package_name, deps
+
 
 def get_workflow_file(package_name: str, workflows_dir: Path) -> Optional[Path]:
     """Find the workflow file for a package."""
@@ -87,6 +90,7 @@ def get_workflow_file(package_name: str, workflows_dir: Path) -> Optional[Path]:
     if workflow_file.exists():
         return workflow_file
     return None
+
 
 def get_binary_package_names(package_name: str, packages_dir: Path) -> List[str]:
     """
@@ -110,28 +114,19 @@ def build_dependency_graph(packages_dir: Path, workflows_dir: Path) -> Tuple[Dic
     Build a dependency graph from all control files.
     Returns: (dependency_graph, workflow_map)
     """
-    graph = defaultdict(set)
+    graph = {}
     workflow_map = {}
-    all_packages = set()
     
-    # First pass - collect all package names
     for control_file in packages_dir.glob("*/control"):
-        package_name, _ = parse_control_file(control_file)
+        package_name, deps = parse_control_file(control_file)
         if package_name:
-            all_packages.add(package_name)
+            graph[package_name] = deps
             workflow = get_workflow_file(package_name, workflows_dir)
             if workflow:
                 workflow_map[package_name] = workflow
     
-    # Second pass - build dependency graph (only custom packages)
-    for control_file in packages_dir.glob("*/control"):
-        package_name, deps = parse_control_file(control_file)
-        if package_name and package_name in workflow_map:
-            # Only include dependencies that are in our package set
-            custom_deps = deps & all_packages
-            graph[package_name] = custom_deps
-    
     return graph, workflow_map
+
 
 def topological_sort(graph: Dict[str, Set[str]]) -> List[str]:
     """
@@ -140,6 +135,11 @@ def topological_sort(graph: Dict[str, Set[str]]) -> List[str]:
     """
     # Get all nodes (packages)
     all_nodes = set(graph.keys())
+    
+    # Filter out dependencies that aren't source packages (no control file)
+    # These are binary package names that will be built as part of their source package
+    for package in graph:
+        graph[package] = {dep for dep in graph[package] if dep in all_nodes}
     
     # Calculate in-degree for each node (how many packages depend on it)
     in_degree = {node: 0 for node in all_nodes}
@@ -193,7 +193,8 @@ def topological_sort(graph: Dict[str, Set[str]]) -> List[str]:
     
     return result
 
-def build_package(package_name: str, workflow_file: Path, platform: str, docker_platform: str, container_id: str, timeout_seconds: int = 600, output_file=None) -> bool:
+
+def build_package(package_name: str, workflow_file: Path, platform: str, docker_platform: str, container_id: str, timeout_seconds: int = 600, output_file=None, force_source: bool = False) -> bool:
     """
     Build a single package in an existing Docker container.
     Returns True on success, False on failure.
@@ -204,12 +205,13 @@ def build_package(package_name: str, workflow_file: Path, platform: str, docker_
     timeout_cmd = "gtimeout" if sys.platform == "darwin" else "timeout"
 
     # Build the bash script to run in the container
+    force_source_flag = "--force-source" if force_source else ""
     bash_script = (
         "set -euo pipefail && "
         "cd /workspace && "
         "source scripts/build-helpers/build-common.sh && "
         f"install_build_dependencies {package_name} && "
-        f"build_package {package_name} {platform}"
+        f"build_package {package_name} {platform} '' {force_source_flag}"
     )
 
     cmd = [
@@ -288,7 +290,7 @@ def start_build_container(docker_platform: str, repo_root: Path) -> Optional[str
         "-v", f"{home_dir}/.ssh:/root/.ssh:ro",
         "-v", f"{home_dir}/.gitconfig:/root/.gitconfig:ro",
         "-w", "/workspace",
-        "ubuntu:20.04",
+        "ubuntu:24.04",
         "tail", "-f", "/dev/null"  # Keep container running
     ]
     
@@ -300,6 +302,7 @@ def start_build_container(docker_platform: str, repo_root: Path) -> Optional[str
     except subprocess.CalledProcessError as e:
         log_error(f"Failed to start container: {e}")
         return None
+
 
 def stop_build_container(container_id: str):
     """Stop and remove the build container."""
@@ -319,19 +322,23 @@ def main():
     timeout_seconds = 600
     dry_run = False
     log_file = None
-    skip_existing = False
+    skip_existing = True
+    force_source = False
     single_package = None
     
     if "--help" in sys.argv or "-h" in sys.argv:
-        print("Usage: build-all-packages.py [OPTIONS]")
+        print("Usage: build-packages.py [OPTIONS]")
         print("\nOptions:")
         print("  --platform ARCH       Platform to build for (default: arm64)")
         print("  --timeout SECONDS     Timeout per package in seconds (default: 600)")
         print("  --log-file PATH      Save build logs to file instead of stdout")
-        print("  --skip-existing      Skip building packages that already have .deb files")
+        print("  --rebuild-existing   Rebuild packages even if .deb files already exist")
+        print("  --force-source       Force re-cloning and patching source even if it exists")
         print("  --package NAME       Build only the specified package (without dependencies)")
         print("  --dry-run            Show build order without building")
         print("  --help, -h           Show this help message")
+        print("\nNote: By default, packages with existing .deb files are skipped.")
+        print("      Builds run in Docker containers with QEMU for multi-arch support.")
         sys.exit(0)
     
     if "--platform" in sys.argv:
@@ -342,27 +349,30 @@ def main():
     if "--timeout" in sys.argv:
         idx = sys.argv.index("--timeout")
         timeout_seconds = int(sys.argv[idx + 1])
-    
+
     if "--log-file" in sys.argv:
         idx = sys.argv.index("--log-file")
         log_file = sys.argv[idx + 1]
-    
-    if "--skip-existing" in sys.argv:
-        skip_existing = True
-    
+
+    if "--rebuild-existing" in sys.argv:
+        skip_existing = False
+
+    if "--force-source" in sys.argv:
+        force_source = True
+
     if "--package" in sys.argv:
         idx = sys.argv.index("--package")
         single_package = sys.argv[idx + 1]
-    
+
     if "--dry-run" in sys.argv:
         dry_run = True
-    
+
     # Set up paths
     script_dir = Path(__file__).parent
     repo_root = script_dir.parent
     packages_dir = repo_root / "packages"
     workflows_dir = repo_root / ".github" / "workflows"
-    
+
     log_info("=" * 60)
     if single_package:
         log_info(f"Building package: {single_package}")
@@ -373,27 +383,27 @@ def main():
     if log_file:
         log_info(f"Build output will be saved to: {log_file}")
     log_info("=" * 60)
-    
+
     # Build dependency graph
     log_info("Analyzing package dependencies...")
     graph, workflow_map = build_dependency_graph(packages_dir, workflows_dir)
-    
+
     # Sort packages by dependencies
     log_info("Calculating build order...")
     build_order = topological_sort(graph)
-    
+
     # Filter to single package if requested
     if single_package:
         if single_package not in build_order:
             log_error(f"Package '{single_package}' not found")
             log_info(f"Available packages: {', '.join(sorted(build_order))}")
             sys.exit(1)
-        
+
         # Build only the specified package
         build_order = [single_package]
-        
+
         log_info(f"\nBuilding only package '{single_package}'")
-    
+
     # Display dependency information
     log_info("\nDependency Graph:")
     for package in build_order:
@@ -402,18 +412,18 @@ def main():
             log_info(f"  {package} depends on: {', '.join(sorted(deps))}")
         else:
             log_info(f"  {package} (no custom dependencies)")
-    
+
     log_info(f"\nBuild order: {' → '.join(build_order)}")
     log_info(f"\nTotal packages to build: {len(build_order)}")
     log_info("=" * 60)
-    
+
     if dry_run:
         log_info("\n--dry-run mode: Showing build order only, not building packages")
         log_success(f"\nWould build {len(build_order)} packages in this order:")
         for idx, package_name in enumerate(build_order, 1):
             log_info(f"  {idx}. {package_name}")
         sys.exit(0)
-    
+
     # Start persistent build container
     container_id = start_build_container(docker_platform, repo_root)
     if not container_id:
@@ -424,7 +434,7 @@ def main():
     succeeded = []
     failed = []
     skipped = []
-    
+
     try:
         for idx, package_name in enumerate(build_order, 1):
             # Check if package already exists
@@ -449,7 +459,7 @@ def main():
                 failed.append(package_name)
                 break
             
-            if build_package(package_name, workflow, platform, docker_platform, container_id, timeout_seconds, log_file):
+            if build_package(package_name, workflow, platform, docker_platform, container_id, timeout_seconds, log_file, force_source):
                 log_success(f"[{idx}/{len(build_order)}] ✓ {package_name} built successfully")
                 succeeded.append(package_name)
             else:
@@ -465,18 +475,18 @@ def main():
     log_info("\n" + "=" * 60)
     log_info("Build Summary")
     log_info("=" * 60)
-    
+
     if skipped:
         log_info(f"Skipped (already built): {len(skipped)}/{len(build_order)}")
         for package in skipped:
             log_info(f"  ⊙ {package}")
-    
+
     log_success(f"Succeeded: {len(succeeded)}/{len(build_order)}")
-    
+
     if succeeded:
         for package in succeeded:
             log_success(f"  ✓ {package}")
-    
+
     if failed:
         log_error(f"Failed: {len(failed)}/{len(build_order)}")
         for package in failed:

@@ -1,18 +1,18 @@
-name: Package cimplog
+name: Package libwdmp-c
 
 on:
   push:
     branches: [ main ]
     paths:
-      - 'packages/cimplog/**'
+      - 'packages/libwdmp-c/**'
       - 'scripts/**'
-      - '.github/workflows/package-cimplog.yml'
+      - '.github/workflows/package-libwdmp-c.yml'
   pull_request:
     branches: [ main ]
     paths:
-      - 'packages/cimplog/**'
+      - 'packages/libwdmp-c/**'
       - 'scripts/**'
-      - '.github/workflows/package-cimplog.yml'
+      - '.github/workflows/package-libwdmp-c.yml'
   workflow_dispatch:
 
 jobs:
@@ -27,7 +27,7 @@ jobs:
             docker_platform: linux/amd64
     
     runs-on: ubuntu-latest
-    name: Build cimplog for ${{ matrix.platform }}
+    name: Build libwdmp-c for ${{ matrix.platform }}
     
     steps:
       - name: Checkout repository
@@ -46,13 +46,21 @@ jobs:
             ubuntu:20.04 \
             bash -c '
               set -euo pipefail
-
+                            
               # Source build helpers
               source scripts/build-helpers/build-common.sh
               
-              # Install build dependencies from control file
-              install_build_dependencies cimplog
-
-              # Build package
-              build_package cimplog ${{ matrix.platform }}
+              # Install dependencies for this package
+              install_build_dependencies libwdmp-c
+              
+              # Build the package
+              build_package libwdmp-c ${{ matrix.platform }}
             '
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wdmp-c-${{ matrix.platform }}
+          path: |
+            libwdmp-c_*_${{ matrix.platform }}.deb
+            libwdmp-c-dev_*_${{ matrix.platform }}.deb
