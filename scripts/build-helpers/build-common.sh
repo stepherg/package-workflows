@@ -11,6 +11,9 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Configuration - can be overridden via environment variables
+SOURCE_DIR=${SOURCE_DIR:-/tmp/source}
+
 # Logging functions - all output to stderr to avoid polluting function return values
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $*" >&2
@@ -32,6 +35,7 @@ log_error() {
 # Args: $1 = project name
 install_build_dependencies() {
     local project=$1
+    local arch=${2:-"arm64"}
     local control_file="packages/$project/control"
 
     if [ ! -f "$control_file" ]; then
@@ -97,7 +101,7 @@ install_build_dependencies() {
     for pkg in $custom_pkgs; do
         log_info "Installing custom package: $pkg"
         # Find matching .deb files for this package
-        local deb_files=$(ls ${pkg}_*_*.deb 2>/dev/null || true)
+        local deb_files=$(ls ${pkg}_*_${arch}.deb 2>/dev/null || true)
         if [ -n "$deb_files" ]; then
             dpkg -i $deb_files || apt-get install -f -y
             log_success "Installed $pkg"
@@ -136,24 +140,24 @@ clone_upstream() {
 
     log_info "Cloning upstream repository: $upstream_url"
     log_info "Target ref: $upstream_ref"
-    if [ ! -d source ]; then
-        mkdir -p source
+    if [ ! -d "$SOURCE_DIR" ]; then
+        mkdir -p "$SOURCE_DIR"
     fi
 
     # Clean up any existing source directory
-    if [ -d "source/$project" ]; then
+    if [ -d "$SOURCE_DIR/$project" ]; then
         log_warning "Removing existing source directory"
-        rm -rf "source/$project"
+        rm -rf "$SOURCE_DIR/$project"
     fi
 
     # Clone with shallow depth for efficiency
-    if git clone --single-branch -b "$upstream_ref" "$upstream_url" "source/$project" 2>/dev/null; then
+    if git clone --single-branch -b "$upstream_ref" "$upstream_url" "$SOURCE_DIR/$project" 2>/dev/null; then
         log_success "Cloned repository at ref $upstream_ref"
     else
         # Fallback: clone full repo and checkout specific ref
         log_warning "Shallow clone failed, trying full clone..."
-        git clone "$upstream_url" "source/$project"
-        pushd "source/$project"
+        git clone "$upstream_url" "$SOURCE_DIR/$project"
+        pushd "$SOURCE_DIR/$project"
         git checkout "$upstream_ref"
         popd
         log_success "Cloned repository and checked out $upstream_ref"
@@ -1309,7 +1313,7 @@ create_source_package() {
 
     log_info "Creating source package for $project..."
 
-    local source_dir="source/$project"
+    local source_dir="$SOURCE_DIR/$project"
     if [ ! -d "$source_dir" ]; then
         log_warning "Source directory not found, skipping source package"
         return 0
@@ -1375,7 +1379,7 @@ build_package() {
     local force_source=false
 
     # Check for --force-source flag in any position to force re-cloning even if source exists
-    if [[ "$3" == "--force-source" ]] || [[ "${4:-}" == "--force-source" ]]; then
+    if [[ "${3:-}" == "--force-source" ]] || [[ "${4:-}" == "--force-source" ]]; then
         force_source=true
         log_info "Force re-cloning source (--force-source flag set)"
     fi
@@ -1397,7 +1401,7 @@ build_package() {
     local version=$(grep "^Version:" "$control_file" | sed 's/^Version: *//')
 
     # Override upstream ref if provided
-    if [ -n "$upstream_ref_override" ]; then
+    if [ -n "$upstream_ref_override" ] && [ "$upstream_ref_override" != "--force-source" ]; then
         log_info "Using upstream ref override: $upstream_ref_override"
         upstream_ref="$upstream_ref_override"
     fi
@@ -1440,16 +1444,16 @@ build_package() {
 
     # Clone upstream repository and apply patches
     # Skip if source already exists unless --force-source is set
-    if [ ! -d "source/$project" ] || [ "$force_source" = true ]; then
-        if [ "$force_source" = true ] && [ -d "source/$project" ]; then
+    if [ ! -d "$SOURCE_DIR/$project" ] || [ "$force_source" = true ]; then
+        if [ "$force_source" = true ] && [ -d "$SOURCE_DIR/$project" ]; then
             log_info "Removing existing source directory (--force-source)"
-            rm -rf "source/$project"
+            rm -rf "$SOURCE_DIR/$project"
         fi
 
         clone_upstream "$project" "$upstream_url" "$upstream_ref"
 
         # Apply patches
-        pushd "source/$project"
+        pushd "$SOURCE_DIR/$project"
         apply_patches "$project"
 
         # Clone additional repositories
@@ -1459,7 +1463,7 @@ build_package() {
         log_info "Source directory already exists, skipping clone and patch (use --force-source to override)"
     fi
 
-    cd "source/$project"
+    cd "$SOURCE_DIR/$project"
 
     # Detect build system
     local buildsys=$(detect_build_system)

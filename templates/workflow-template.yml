@@ -2,10 +2,6 @@ name: Package <PROJECT>
 
 # Triggers - customize as needed for your project
 on:
-  # Uncomment to enable scheduled builds (check for updates weekly)
-  # schedule:
-  #   - cron: '0 0 * * 0'  # Weekly on Sunday at midnight UTC
-  
   # Manual trigger with optional upstream ref override
   workflow_dispatch:
     inputs:
@@ -21,14 +17,17 @@ on:
       - '.github/workflows/package-<PROJECT>.yml'
       - 'scripts/build-helpers/**'
 
+env:
+  PACKAGE_NAME: <PROJECT>
+
 permissions:
   contents: write
   packages: write
 
 jobs:
   build:
-    name: Build <PROJECT> for ${{ matrix.platform }}
-    runs-on: ubuntu-22.04
+    name: Build ${{ env.PACKAGE_NAME }} for ${{ matrix.platform }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -41,12 +40,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Set up QEMU for multi-arch builds
         uses: docker/setup-qemu-action@v3
         with:
           platforms: linux/amd64,linux/arm64
-      
+
       - name: Build package in Docker
         run: |
           docker run --rm --platform=${{ matrix.docker_platform }} \
@@ -55,49 +54,21 @@ jobs:
             ubuntu:20.04 \
             bash -c '
               set -euo pipefail
-              
-              # Install base dependencies
-              export DEBIAN_FRONTEND=noninteractive
-              apt-get update -qq
-              apt-get install -y -qq \
-                git \
-                build-essential \
-                file \
-                binutils \
-                dpkg-dev
-              
-              # Parse control file to get build dependencies
-              PROJECT="<PROJECT>"
-              CONTROL_FILE="packages/$PROJECT/control"
-              
-              # Extract and install build dependencies
-              if [ -f "$CONTROL_FILE" ]; then
-                BUILD_DEPS=$(grep "^Build-Depends:" "$CONTROL_FILE" | sed "s/^Build-Depends: *//" || echo "")
-                if [ -n "$BUILD_DEPS" ]; then
-                  echo "Installing build dependencies: $BUILD_DEPS"
-                  # Convert comma-separated list to space-separated
-                  BUILD_DEPS_CLEAN=$(echo "$BUILD_DEPS" | tr "," "\n" | sed "s/ *(.*)//" | tr "\n" " ")
-                  apt-get install -y -qq $BUILD_DEPS_CLEAN || true
-                fi
-              fi
-              
+
               # Source build helpers
               source scripts/build-helpers/build-common.sh
               
-              # Build package (with optional upstream ref override)
-              UPSTREAM_REF="${{ inputs.upstream_ref }}"
-              build_package "$PROJECT" "${{ matrix.platform }}" "$UPSTREAM_REF"
+              # Install dependencies for this package
+              install_build_dependencies ${{ env.PACKAGE_NAME }}
+              
+              # Build the package
+              build_package ${{ env.PACKAGE_NAME }} ${{ matrix.platform }}
             '
-      
-      - name: List generated packages
-        run: |
-          echo "Generated packages:"
-          ls -lh *.deb || echo "No packages found"
-      
-      - name: Upload packages as artifacts
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: <PROJECT>-${{ matrix.platform }}-deb
+          name: ${{ env.PACKAGE_NAME }}-${{ matrix.platform }}-deb
           path: '*.deb'
           retention-days: 90
           if-no-files-found: error

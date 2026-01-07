@@ -23,14 +23,18 @@ NC = '\033[0m'  # No Color
 def log_info(message: str):
     print(f"{BLUE}ℹ{NC} {message}")
 
+
 def log_success(message: str):
     print(f"{GREEN}✓{NC} {message}")
+
 
 def log_error(message: str):
     print(f"{RED}✗{NC} {message}", file=sys.stderr)
 
+
 def log_warning(message: str):
     print(f"{YELLOW}⚠{NC} {message}")
+
 
 def parse_control_file(control_path: Path) -> Tuple[Optional[str], Set[str]]:
     """
@@ -110,6 +114,7 @@ def get_binary_package_names(package_name: str, packages_dir: Path) -> List[str]
     packages = re.findall(r'^Package:\s*(\S+)', content, re.MULTILINE)
     return packages if packages else [package_name]
 
+
 def build_dependency_graph(packages_dir: Path, workflows_dir: Path) -> Tuple[Dict[str, Set[str]], Dict[str, Path]]:
     """
     Build a dependency graph from all control files.
@@ -127,6 +132,7 @@ def build_dependency_graph(packages_dir: Path, workflows_dir: Path) -> Tuple[Dic
                 workflow_map[package_name] = workflow
     
     return graph, workflow_map
+
 
 def topological_sort(graph: Dict[str, Set[str]]) -> List[str]:
     """

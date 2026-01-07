@@ -5,6 +5,7 @@ Reads Build-Depends from control files and builds packages in the correct order.
 """
 
 import sys
+import os
 import subprocess
 import re
 from pathlib import Path
@@ -18,17 +19,22 @@ YELLOW = '\033[1;33m'
 BLUE = '\033[0;34m'
 NC = '\033[0m'  # No Color
 
+
 def log_info(message: str):
     print(f"{BLUE}ℹ{NC} {message}")
+
 
 def log_success(message: str):
     print(f"{GREEN}✓{NC} {message}")
 
+
 def log_error(message: str):
     print(f"{RED}✗{NC} {message}", file=sys.stderr)
 
+
 def log_warning(message: str):
     print(f"{YELLOW}⚠{NC} {message}")
+
 
 def parse_control_file(control_path: Path) -> Tuple[Optional[str], Set[str]]:
     """
@@ -210,7 +216,7 @@ def build_package(package_name: str, workflow_file: Path, platform: str, docker_
         "set -euo pipefail && "
         "cd /workspace && "
         "source scripts/build-helpers/build-common.sh && "
-        f"install_build_dependencies {package_name} && "
+        f"install_build_dependencies {package_name} {platform} && "
         f"build_package {package_name} {platform} '' {force_source_flag}"
     )
 
@@ -278,22 +284,47 @@ def start_build_container(docker_platform: str, repo_root: Path) -> Optional[str
     Start a persistent Docker container for building packages.
     Returns the container ID on success, None on failure.
     """
-    home_dir = str(Path.home())
-    
+    # Get the actual user's home directory (not the container's when running in act)
+    home_dir = os.environ.get("HOME") or str(Path.home())
+    # home_dir = "/Users/rsteph930@cable.comcast.com"
+
     log_info("Starting build container...")
-    
+
     cmd = [
         "docker", "run",
         "-d",  # Detached mode
         f"--platform={docker_platform}",
         "-v", f"{repo_root}:/workspace",
-        "-v", f"{home_dir}/.ssh:/root/.ssh:ro",
-        "-v", f"{home_dir}/.gitconfig:/root/.gitconfig:ro",
+    ]
+
+    # Mount SSH agent socket if available (for webfactory/ssh-agent action)
+    ssh_auth_sock = os.environ.get("SSH_AUTH_SOCK")
+    if ssh_auth_sock and Path(ssh_auth_sock).exists():
+        cmd.extend([
+            "-v", f"{ssh_auth_sock}:/ssh-agent",
+            "-e", "SSH_AUTH_SOCK=/ssh-agent"
+        ])
+        log_info(f"Mounting SSH agent socket: {ssh_auth_sock}")
+
+    # Mount .gitconfig if it exists (for URL rewrites)
+    gitconfig = Path(home_dir) / ".gitconfig"
+    if gitconfig.exists():
+        cmd.extend(["-v", f"{gitconfig}:/root/.gitconfig:ro"])
+        log_info(f"Mounting .gitconfig from {gitconfig}")
+
+    # Mount .ssh directory if it exists and SSH agent is not available
+    if not ssh_auth_sock:
+        ssh_dir = Path(home_dir) / ".ssh"
+        if ssh_dir.exists():
+            cmd.extend(["-v", f"{ssh_dir}:/root/.ssh:ro"])
+            log_info(f"Mounting .ssh directory from {ssh_dir}")
+
+    cmd.extend([
         "-w", "/workspace",
         "ubuntu:24.04",
         "tail", "-f", "/dev/null"  # Keep container running
-    ]
-    
+    ])
+
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         container_id = result.stdout.strip()
@@ -319,7 +350,7 @@ def main():
     # Parse arguments
     platform = "arm64"
     docker_platform = "linux/arm64"
-    timeout_seconds = 600
+    timeout_seconds = 3600
     dry_run = False
     log_file = None
     skip_existing = True

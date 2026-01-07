@@ -1,0 +1,120 @@
+name: Build All Packages
+
+# To run locally with act: act workflow_dispatch -j build-all
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build for (leave empty for both)'
+        required: false
+        type: choice
+        options:
+          - ''
+          - arm64
+          - amd64
+      force_source:
+        description: 'Force re-clone source repositories'
+        required: false
+        type: boolean
+        default: false
+      rebuild_existing:
+        description: 'Rebuild packages even if .deb files exist'
+        required: false
+        type: boolean
+        default: false
+  push:
+    branches: [ main ]
+    paths:
+      - 'scripts/build-packages.py'
+      - 'scripts/build-helpers/**'
+      - '.github/workflows/build-all-packages.yml'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build-all:
+    name: Build all packages for ${{ matrix.platform }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 360  # 6 hours
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ inputs.platform && fromJSON(format('["{0}"]', inputs.platform)) || fromJSON('["arm64", "amd64"]') }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup SSH
+        continue-on-error: true
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          # Configure SSH URL rewrite if SSH agent is available
+          if ssh-add -l &>/dev/null; then
+            echo "SSH agent detected, configuring SSH URLs"
+            git config --global url."git@github.com:rdk-gdcs".insteadOf "https://github.com/rdk-gdcs"
+          else
+            echo "No SSH agent, using HTTPS URLs"
+          fi
+
+      - name: Set up QEMU for multi-arch builds
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Build all packages
+        run: |
+          ARGS="--platform ${{ matrix.platform }}"
+          
+          if [ "${{ inputs.force_source }}" = "true" ]; then
+            ARGS="$ARGS --force-source"
+          fi
+          
+          if [ "${{ inputs.rebuild_existing }}" = "true" ]; then
+            ARGS="$ARGS --rebuild-existing"
+          fi
+
+          echo "Running: python3 scripts/build-packages.py $ARGS"
+          python3 scripts/build-packages.py $ARGS
+
+      - name: List generated packages
+        run: |
+          echo "Generated .deb packages:"
+          ls -lh *.deb 2>/dev/null || echo "No .deb files found"
+
+      - name: Upload all package artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: all-packages-${{ matrix.platform }}
+          path: |
+            *.deb
+            *.ddeb
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: Upload build logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-logs-${{ matrix.platform }}
+          path: |
+            /tmp/build-*.log
+          retention-days: 30
+          if-no-files-found: ignore
