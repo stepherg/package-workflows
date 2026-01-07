@@ -200,7 +200,7 @@ def topological_sort(graph: Dict[str, Set[str]]) -> List[str]:
     return result
 
 
-def build_package(package_name: str, workflow_file: Path, platform: str, docker_platform: str, container_id: str, timeout_seconds: int = 600, output_file=None, force_source: bool = False) -> bool:
+def build_package(package_name: str, platform: str, docker_platform: str, container_id: str, timeout_seconds: int = 600, output_file=None, force_source: bool = False) -> bool:
     """
     Build a single package in an existing Docker container.
     Returns True on success, False on failure.
@@ -483,14 +483,8 @@ def main():
                     continue
             
             log_info(f"\n[{idx}/{len(build_order)}] Building {package_name}...")
-            
-            workflow = workflow_map.get(package_name)
-            if not workflow:
-                log_error(f"Workflow file not found for {package_name}")
-                failed.append(package_name)
-                break
-            
-            if build_package(package_name, workflow, platform, docker_platform, container_id, timeout_seconds, log_file, force_source):
+
+            if build_package(package_name, platform, docker_platform, container_id, timeout_seconds, log_file, force_source):
                 log_success(f"[{idx}/{len(build_order)}] ✓ {package_name} built successfully")
                 succeeded.append(package_name)
             else:
