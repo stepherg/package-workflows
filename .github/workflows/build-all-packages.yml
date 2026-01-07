@@ -101,16 +101,22 @@ jobs:
           echo "Generated .deb packages:"
           ls -lh *.deb 2>/dev/null || echo "No .deb files found"
 
-      - name: Upload all package artifacts
+      - name: Create APT repository for this platform
+        if: success()
+        run: |
+          echo "Creating APT repository for ${{ matrix.platform }}..."
+          bash scripts/create-apt-repository.sh ${{ matrix.platform }} apt-repo-${{ matrix.platform }}
+          
+          echo "Repository structure:"
+          find apt-repo-${{ matrix.platform }} -type f | sort
+
+      - name: Upload APT repository
         uses: actions/upload-artifact@v4
-        if: always()
+        if: success()
         with:
-          name: all-packages-${{ matrix.platform }}
-          path: |
-            *.deb
-            *.ddeb
+          name: apt-repo-${{ matrix.platform }}
+          path: apt-repo-${{ matrix.platform }}
           retention-days: 90
-          if-no-files-found: warn
 
       - name: Upload build logs
         uses: actions/upload-artifact@v4
@@ -121,3 +127,45 @@ jobs:
             /tmp/build-*.log
           retention-days: 30
           if-no-files-found: ignore
+
+  publish-apt-repo:
+    name: Publish APT repository to GitHub Pages
+    needs: build-all
+    runs-on: ubuntu-latest
+    if: success()
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download arm64 repository
+        uses: actions/download-artifact@v4
+        with:
+          name: apt-repo-arm64
+          path: apt-repo
+
+      - name: Download amd64 repository
+        uses: actions/download-artifact@v4
+        with:
+          name: apt-repo-amd64
+          path: apt-repo
+
+      - name: Merge repository metadata
+        run: |
+          echo "Merged APT repository structure:"
+          find apt-repo -type f | sort
+          
+          echo ""
+          echo "Verifying both architectures are present:"
+          ls -la apt-repo/dists/stable/main/
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./apt-repo
+          publish_branch: gh-pages
+          force_orphan: true
+          commit_message: "Update APT repository: ${{ github.sha }}"
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
