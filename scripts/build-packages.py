@@ -318,6 +318,13 @@ def start_build_container(docker_platform: str, repo_root: Path) -> Optional[str
         if ssh_dir.exists():
             cmd.extend(["-v", f"{ssh_dir}:/root/.ssh:ro"])
             log_info(f"Mounting .ssh directory from {ssh_dir}")
+    else:
+        # When using SSH agent, mount known_hosts if it exists
+        ssh_dir = Path(home_dir) / ".ssh"
+        known_hosts = ssh_dir / "known_hosts"
+        if known_hosts.exists():
+            cmd.extend(["-v", f"{known_hosts}:/root/.ssh/known_hosts:ro"])
+            log_info(f"Mounting known_hosts from {known_hosts}")
 
     cmd.extend([
         "-w", "/workspace",
