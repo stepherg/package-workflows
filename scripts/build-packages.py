@@ -8,6 +8,7 @@ import sys
 import os
 import subprocess
 import re
+import platform as platform_module
 from pathlib import Path
 from collections import defaultdict, deque
 from typing import Dict, List, Set, Tuple, Optional
@@ -200,6 +201,38 @@ def topological_sort(graph: Dict[str, Set[str]]) -> List[str]:
     return result
 
 
+def is_native_only_package(package_name: str, packages_dir: Path) -> bool:
+    """
+    Check if a package should only be built on native architecture (no QEMU emulation).
+    Returns True if the package has a 'native_only' marker file.
+    """
+    native_only_marker = packages_dir / package_name / "native_only"
+    return native_only_marker.exists()
+
+
+def is_native_platform(target_platform: str) -> bool:
+    """
+    Check if the target platform matches the native/host architecture.
+    Returns True if building for the native architecture, False if cross-compiling/emulating.
+    """
+    machine = platform_module.machine().lower()
+    
+    # Map platform.machine() output to our platform names
+    native_map = {
+        'x86_64': 'amd64',
+        'amd64': 'amd64',
+        'aarch64': 'arm64',
+        'arm64': 'arm64',
+    }
+    
+    native_platform = native_map.get(machine)
+    if not native_platform:
+        log_warning(f"Unknown native architecture: {machine}")
+        return False
+    
+    return native_platform == target_platform
+
+
 def build_package(package_name: str, platform: str, docker_platform: str, container_id: str, timeout_seconds: int = 600, output_file=None, force_source: bool = False) -> bool:
     """
     Build a single package in an existing Docker container.
@@ -297,6 +330,13 @@ def start_build_container(docker_platform: str, repo_root: Path) -> Optional[str
         "-v", f"{repo_root}:/workspace",
     ]
 
+    # Set environment variables for QEMU emulation stability
+    # Increase stack sizes to prevent segfaults when emulating (e.g., Rust compiler on amd64 via QEMU)
+    cmd.extend([
+        "-e", "RUST_MIN_STACK=16777216",  # 16MB stack for rustc (recommended in error message)
+        "-e", "QEMU_STACK_SIZE=16777216",  # 16MB stack for QEMU itself
+    ])
+
     # Mount SSH agent socket if available (for webfactory/ssh-agent action)
     ssh_auth_sock = os.environ.get("SSH_AUTH_SOCK")
     if ssh_auth_sock and Path(ssh_auth_sock).exists():
@@ -306,25 +346,11 @@ def start_build_container(docker_platform: str, repo_root: Path) -> Optional[str
         ])
         log_info(f"Mounting SSH agent socket: {ssh_auth_sock}")
 
-    # Mount .gitconfig if it exists (for URL rewrites)
-    gitconfig = Path(home_dir) / ".gitconfig"
-    if gitconfig.exists():
-        cmd.extend(["-v", f"{gitconfig}:/root/.gitconfig:ro"])
-        log_info(f"Mounting .gitconfig from {gitconfig}")
-
-    # Mount .ssh directory if it exists and SSH agent is not available
-    if not ssh_auth_sock:
-        ssh_dir = Path(home_dir) / ".ssh"
-        if ssh_dir.exists():
-            cmd.extend(["-v", f"{ssh_dir}:/root/.ssh:ro"])
-            log_info(f"Mounting .ssh directory from {ssh_dir}")
-    else:
-        # When using SSH agent, mount known_hosts if it exists
-        ssh_dir = Path(home_dir) / ".ssh"
-        known_hosts = ssh_dir / "known_hosts"
-        if known_hosts.exists():
-            cmd.extend(["-v", f"{known_hosts}:/root/.ssh/known_hosts:ro"])
-            log_info(f"Mounting known_hosts from {known_hosts}")
+    # Note: .gitconfig will be applied via docker exec after container starts
+    # (can't mount in nested Docker on Mac)
+    
+    # Note: .ssh directory and known_hosts will be copied via docker exec after container starts
+    # (can't mount in nested Docker on Mac)
 
     cmd.extend([
         "-w", "/workspace",
@@ -332,10 +358,77 @@ def start_build_container(docker_platform: str, repo_root: Path) -> Optional[str
         "tail", "-f", "/dev/null"  # Keep container running
     ])
 
+    log_info(f"cmd: {' '.join(cmd)}")
+
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         container_id = result.stdout.strip()
         log_success(f"Build container started: {container_id[:12]}")
+        
+        # Configure git in the container (can't mount .gitconfig in nested Docker on Mac)
+        gitconfig = Path(home_dir) / ".gitconfig"
+        if gitconfig.exists():
+            log_info("Copying .gitconfig to build container...")
+            try:
+                # Copy .gitconfig content
+                with open(gitconfig, 'r') as f:
+                    content = f.read()
+                
+                copy_cmd = ["docker", "exec", "-i", container_id, "bash", "-c", 
+                           "cat > /root/.gitconfig"]
+                subprocess.run(copy_cmd, input=content, text=True, check=True, capture_output=True)
+                
+                log_success("Copied .gitconfig to container")
+            except Exception as e:
+                log_warning(f"Could not copy .gitconfig to container: {e}")
+        
+        # Copy known_hosts if it exists (can't mount in nested Docker on Mac)
+        ssh_dir = Path(home_dir) / ".ssh"
+        known_hosts = ssh_dir / "known_hosts"
+        if known_hosts.exists():
+            log_info("Copying known_hosts to build container...")
+            try:
+                # Create .ssh directory in container
+                subprocess.run(["docker", "exec", container_id, "mkdir", "-p", "/root/.ssh"], 
+                             check=True, capture_output=True)
+                
+                # Copy known_hosts content
+                with open(known_hosts, 'r') as f:
+                    content = f.read()
+                
+                copy_cmd = ["docker", "exec", "-i", container_id, "bash", "-c", 
+                           "cat > /root/.ssh/known_hosts"]
+                subprocess.run(copy_cmd, input=content, text=True, check=True, capture_output=True)
+                
+                # Set permissions
+                subprocess.run(["docker", "exec", container_id, "chmod", "644", "/root/.ssh/known_hosts"],
+                             check=True, capture_output=True)
+                
+                log_success("Copied known_hosts to container")
+            except Exception as e:
+                log_warning(f"Could not copy known_hosts to container: {e}")
+        
+        # Fallback: If SSH agent isn't available, check for SSH_PRIVATE_KEY environment variable
+        # This is useful when running with act locally
+        if not ssh_auth_sock:
+            ssh_private_key = os.environ.get("SSH_PRIVATE_KEY")
+            if ssh_private_key:
+                log_info("SSH agent not available, copying SSH_PRIVATE_KEY to container...")
+                try:
+                    # Create .ssh directory in container
+                    subprocess.run(["docker", "exec", container_id, "mkdir", "-p", "/root/.ssh"], 
+                                 check=True, capture_output=True)
+                    
+                    # Copy SSH private key (ensure it ends with a newline)
+                    key_content = ssh_private_key if ssh_private_key.endswith('\n') else ssh_private_key + '\n'
+                    copy_cmd = ["docker", "exec", "-i", container_id, "bash", "-c", 
+                               "cat > /root/.ssh/id_rsa && chmod 600 /root/.ssh/id_rsa"]
+                    subprocess.run(copy_cmd, input=key_content, text=True, check=True, capture_output=True)
+                    
+                    log_success("Copied SSH private key to container")
+                except Exception as e:
+                    log_warning(f"Could not copy SSH private key to container: {e}")
+        
         return container_id
     except subprocess.CalledProcessError as e:
         log_error(f"Failed to start container: {e}")
@@ -363,7 +456,7 @@ def main():
     skip_existing = True
     force_source = False
     single_package = None
-    
+
     if "--help" in sys.argv or "-h" in sys.argv:
         print("Usage: build-packages.py [OPTIONS]")
         print("\nOptions:")
@@ -378,12 +471,12 @@ def main():
         print("\nNote: By default, packages with existing .deb files are skipped.")
         print("      Builds run in Docker containers with QEMU for multi-arch support.")
         sys.exit(0)
-    
+
     if "--platform" in sys.argv:
         idx = sys.argv.index("--platform")
         platform = sys.argv[idx + 1]
         docker_platform = f"linux/{platform}"
-    
+
     if "--timeout" in sys.argv:
         idx = sys.argv.index("--timeout")
         timeout_seconds = int(sys.argv[idx + 1])
@@ -467,7 +560,7 @@ def main():
     if not container_id:
         log_error("Failed to start build container")
         sys.exit(1)
-    
+
     # Build packages in order
     succeeded = []
     failed = []
@@ -475,6 +568,16 @@ def main():
 
     try:
         for idx, package_name in enumerate(build_order, 1):
+            # Check if package is native-only and we're cross-compiling
+            if is_native_only_package(package_name, packages_dir):
+                if not is_native_platform(platform):
+                    native_arch = platform_module.machine().lower()
+                    log_warning(f"\n[{idx}/{len(build_order)}] Skipping {package_name} (native-only package, target {platform} != native {native_arch})")
+                    skipped.append(package_name)
+                    continue
+                else:
+                    log_info(f"\n[{idx}/{len(build_order)}] Building {package_name} (native-only, on native platform)")
+            
             # Check if package already exists
             if skip_existing:
                 # Get all binary package names produced by this source package
@@ -483,12 +586,12 @@ def main():
                 for binary_pkg in binary_packages:
                     deb_pattern = f"{binary_pkg}_*_{platform}.deb"
                     existing_debs.extend(repo_root.glob(deb_pattern))
-                
+
                 if existing_debs:
                     log_info(f"\n[{idx}/{len(build_order)}] Skipping {package_name} (found {len(existing_debs)} .deb file(s))")
                     skipped.append(package_name)
                     continue
-            
+
             log_info(f"\n[{idx}/{len(build_order)}] Building {package_name}...")
 
             if build_package(package_name, platform, docker_platform, container_id, timeout_seconds, log_file, force_source):
@@ -502,7 +605,8 @@ def main():
     finally:
         # Always stop the container, even if build fails
         stop_build_container(container_id)
-    
+        #log_info("finally...")
+
     # Print summary
     log_info("\n" + "=" * 60)
     log_info("Build Summary")

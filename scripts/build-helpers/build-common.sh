@@ -69,13 +69,17 @@ install_build_dependencies() {
     for dep in "${DEPS[@]}"; do
         # Trim whitespace and remove version constraints
         dep=$(echo "$dep" | sed 's/^ *//; s/ *$//; s/ *(.*)//')
+        if [ "$dep" == "cargo" ] || [ "$dep" == "rustc" ]; then
+            continue
+        fi
+        system_pkgs="$system_pkgs $dep"
 
         # Check if it's a custom package (check if .deb file exists)
-        if ls ${dep}_*_*.deb 2>/dev/null | grep -q .; then
-            custom_pkgs="$custom_pkgs $dep"
-        else
-            system_pkgs="$system_pkgs $dep"
-        fi
+        #if ls ${dep}_*_*.deb 2>/dev/null | grep -q .; then
+        #    custom_pkgs="$custom_pkgs $dep"
+        #else
+        #    system_pkgs="$system_pkgs $dep"
+        #fi
     done
 
     system_pkgs="$system_pkgs $base_system_pkgs"

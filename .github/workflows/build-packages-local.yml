@@ -1,14 +1,20 @@
-name: Build All Packages
+name: Build Packages (Local)
+
+# Simplified workflow for local testing with act (uses build-packages-local.py - no Docker)
+# Usage: 
+#    act workflow_dispatch -j build \
+#      --container-options "-v $PWD:/workspace -w /workspace" \
+#      -s SSH_PRIVATE_KEY="$(cat ~/.ssh/id_rsa)"
+#
 
 on:
   workflow_dispatch:
     inputs:
       platform:
-        description: 'Platform to build for (leave empty for both)'
+        description: 'Platform to build for'
         required: false
         type: choice
         options:
-          - ''
           - arm64
           - amd64
       force_source:
@@ -21,20 +27,17 @@ on:
         required: false
         type: boolean
         default: false
-  push:
-    branches: [ main ]
-    paths:
-      - 'packages/**'
-      - 'scripts/build-packages.py'
-      - 'scripts/build-helpers/**'
-      - '.github/workflows/build-all-packages.yml'
+      package:
+        description: 'Specific package to build (leave empty for all)'
+        required: false
+        type: string
 
 permissions:
   contents: write
   packages: write
 
 jobs:
-  build-all:
+  build:
     name: Build all packages for ${{ matrix.platform }}
     runs-on: ubuntu-latest
     timeout-minutes: 360  # 6 hours
@@ -49,26 +52,14 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Setup SSH
-        continue-on-error: true
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
       - name: Configure Git
         run: |
-          git config --global user.name "GitHub Actions Bot"
-          git config --global user.email "actions@github.com"
-          # Configure SSH URL rewrite if SSH agent is available
-          if ssh-add -l &>/dev/null; then
-            echo "SSH agent detected, configuring SSH URLs"
-            git config --global url."git@github.com:rdk-gdcs/".insteadOf "https://github.com/rdk-gdcs/"
-            # Add GitHub to known_hosts
-            mkdir -p ~/.ssh
-            ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
-          else
-            echo "No SSH agent, using HTTPS URLs"
-          fi
+          git config --global user.name "Local Build"
+          git config --global user.email "build@localhost"
+          git config --global url."git@github.com:rdk-gdcs/".insteadOf "https://github.com/rdk-gdcs/"
+          # Add GitHub to known_hosts
+          mkdir -p ~/.ssh
+          ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Set up QEMU for multi-arch builds
         uses: docker/setup-qemu-action@v3
@@ -81,6 +72,8 @@ jobs:
           python-version: '3.x'
 
       - name: Build all packages
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           ARGS="--platform ${{ matrix.platform }}"
           
@@ -104,59 +97,29 @@ jobs:
         if: success()
         run: |
           echo "Creating APT repository for ${{ matrix.platform }}..."
-          bash scripts/create-apt-repository.sh ${{ matrix.platform }} apt-repo-${{ matrix.platform }}
+          bash scripts/create-apt-repository.sh ${{ matrix.platform }}
           
           echo "Repository structure:"
-          find apt-repo-${{ matrix.platform }} -type f | sort
+          find apt-repo -type f | sort
+          
+          echo ""
+          echo "To use this repository locally:"
+          echo "  cd apt-repo && python3 -m http.server 8080"
 
-      - name: Upload APT repository
-        uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: apt-repo-${{ matrix.platform }}
-          path: apt-repo-${{ matrix.platform }}
-          retention-days: 90
-
-      - name: Upload build logs
-        uses: actions/upload-artifact@v4
+      - name: Save build logs
         if: always()
-        with:
-          name: build-logs-${{ matrix.platform }}
-          path: |
-            /tmp/build-*.log
-          retention-days: 30
-          if-no-files-found: ignore
+        run: |
+          echo "Build logs location:"
+          ls -lh /tmp/build-*.log 2>/dev/null || echo "No build logs found"
 
-  publish-apt-repo:
+  publish-local-repo:
     name: Publish APT repository to GitHub Pages
-    needs: build-all
+    needs: build
     runs-on: ubuntu-latest
-    if: success()
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Download arm64 repository
-        uses: actions/download-artifact@v4
-        with:
-          name: apt-repo-arm64
-          path: apt-repo
-
-      - name: Download amd64 repository
-        uses: actions/download-artifact@v4
-        with:
-          name: apt-repo-amd64
-          path: apt-repo
-
-      - name: Merge repository metadata
-        run: |
-          echo "Merged APT repository structure:"
-          find apt-repo -type f | sort
-          
-          echo ""
-          echo "Verifying both architectures are present:"
-          ls -la apt-repo/dists/stable/main/
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

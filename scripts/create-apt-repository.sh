@@ -74,7 +74,11 @@ log_info "Copying packages to pool directory..."
 for deb in *.deb; do
     if [ -f "$deb" ]; then
         # Extract package name and version for organized storage
-        PKG_NAME=$(dpkg-deb -f "$deb" Package 2>/dev/null || basename "$deb" .deb | cut -d_ -f1)
+        if command -v dpkg-deb &> /dev/null; then
+            PKG_NAME=$(dpkg-deb -f "$deb" Package 2>/dev/null || basename "$deb" .deb | cut -d_ -f1)
+        else
+            PKG_NAME=$(basename "$deb" .deb | cut -d_ -f1)
+        fi
         
         # Create subdirectory by first letter of package name
         FIRST_LETTER=$(echo "$PKG_NAME" | cut -c1 | tr '[:upper:]' '[:lower:]')
