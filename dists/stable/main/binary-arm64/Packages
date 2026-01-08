@@ -1,0 +1,18 @@
+Package: liblinenoise
+Version: 1.0
+Architecture: arm64
+Maintainer: Package Workflows <packages@example.com>
+Installed-Size: 96
+Depends: libc6 (>= 2.17)
+Filename: pool/main/l/liblinenoise/liblinenoise_1.0_arm64.deb
+Size: 29350
+MD5sum: b80b93c4d4bf8506e27750991e4c913a
+SHA1: 543ce2970658d42519d3125f01064b99eb90c7c8
+SHA256: 766a81cae161a129027417b769867a40e5f795fdc404e8d55a1fcdf278dbf283
+Section: misc
+Priority: optional
+Description: Minimal line editing library
+ A minimal, zero-config, BSD licensed, readline replacement.
+ Linenoise is a line editing library used to provide readline-like
+ functionality to command line applications with minimal dependencies.
+
