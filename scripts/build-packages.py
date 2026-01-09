@@ -8,7 +8,6 @@ import sys
 import os
 import subprocess
 import re
-import platform as platform_module
 from pathlib import Path
 from collections import defaultdict, deque
 from typing import Dict, List, Set, Tuple, Optional
@@ -201,38 +200,6 @@ def topological_sort(graph: Dict[str, Set[str]]) -> List[str]:
     return result
 
 
-def is_native_only_package(package_name: str, packages_dir: Path) -> bool:
-    """
-    Check if a package should only be built on native architecture (no QEMU emulation).
-    Returns True if the package has a 'native_only' marker file.
-    """
-    native_only_marker = packages_dir / package_name / "native_only"
-    return native_only_marker.exists()
-
-
-def is_native_platform(target_platform: str) -> bool:
-    """
-    Check if the target platform matches the native/host architecture.
-    Returns True if building for the native architecture, False if cross-compiling/emulating.
-    """
-    machine = platform_module.machine().lower()
-    
-    # Map platform.machine() output to our platform names
-    native_map = {
-        'x86_64': 'amd64',
-        'amd64': 'amd64',
-        'aarch64': 'arm64',
-        'arm64': 'arm64',
-    }
-    
-    native_platform = native_map.get(machine)
-    if not native_platform:
-        log_warning(f"Unknown native architecture: {machine}")
-        return False
-    
-    return native_platform == target_platform
-
-
 def build_package(package_name: str, platform: str, docker_platform: str, container_id: str, timeout_seconds: int = 600, output_file=None, force_source: bool = False) -> bool:
     """
     Build a single package in an existing Docker container.
@@ -312,6 +279,39 @@ def build_package(package_name: str, platform: str, docker_platform: str, contai
             log_info(f"  Log saved to: {package_log}")
 
 
+def get_native_docker_platform() -> str:
+    """
+    Get the native Docker platform for the current host.
+    Returns 'linux/arm64' on arm64/aarch64, 'linux/amd64' on x86_64.
+    """
+    import platform
+    machine = platform.machine().lower()
+    if machine in ('aarch64', 'arm64'):
+        return 'linux/arm64'
+    elif machine in ('x86_64', 'amd64'):
+        return 'linux/amd64'
+    else:
+        log_warning(f"Unknown machine type {machine}, defaulting to linux/amd64")
+        return 'linux/amd64'
+
+
+def is_native_platform(docker_platform: str) -> bool:
+    """
+    Check if the requested docker_platform matches the native/host platform.
+    """
+    native = get_native_docker_platform()
+    return native == docker_platform
+
+
+def uses_rust_cross_compile(packages_dir: Path, package_name: str) -> bool:
+    """
+    Check if a package uses Rust cross-compilation.
+    Returns True if the package has a rust_cross_compile marker file.
+    """
+    marker = packages_dir / package_name / "rust_cross_compile"
+    return marker.exists()
+
+
 def start_build_container(docker_platform: str, repo_root: Path) -> Optional[str]:
     """
     Start a persistent Docker container for building packages.
@@ -319,7 +319,6 @@ def start_build_container(docker_platform: str, repo_root: Path) -> Optional[str
     """
     # Get the actual user's home directory (not the container's when running in act)
     home_dir = os.environ.get("HOME") or str(Path.home())
-    # home_dir = "/Users/rsteph930@cable.comcast.com"
 
     log_info("Starting build container...")
 
@@ -565,18 +564,20 @@ def main():
     succeeded = []
     failed = []
     skipped = []
+    rust_packages = []  # Track Rust cross-compile packages to build on native platform
 
     try:
         for idx, package_name in enumerate(build_order, 1):
-            # Check if package is native-only and we're cross-compiling
-            if is_native_only_package(package_name, packages_dir):
-                if not is_native_platform(platform):
-                    native_arch = platform_module.machine().lower()
-                    log_warning(f"\n[{idx}/{len(build_order)}] Skipping {package_name} (native-only package, target {platform} != native {native_arch})")
+            # Check if this package uses Rust cross-compilation
+            if uses_rust_cross_compile(packages_dir, package_name):
+                if not is_native_platform(docker_platform):
+                    # Skip Rust packages when not on native platform (they'll be built natively)
+                    log_info(f"\n[{idx}/{len(build_order)}] Skipping {package_name} (Rust cross-compile package, will build on native platform)")
+                    rust_packages.append(package_name)
                     skipped.append(package_name)
                     continue
                 else:
-                    log_info(f"\n[{idx}/{len(build_order)}] Building {package_name} (native-only, on native platform)")
+                    log_info(f"\n[{idx}/{len(build_order)}] Building {package_name} (Rust package on native platform)")
             
             # Check if package already exists
             if skip_existing:
@@ -605,7 +606,61 @@ def main():
     finally:
         # Always stop the container, even if build fails
         stop_build_container(container_id)
-        #log_info("finally...")
+
+    # If on native platform, build all Rust packages for BOTH architectures
+    if is_native_platform(docker_platform):
+        rust_packages_in_order = [pkg for pkg in build_order if uses_rust_cross_compile(packages_dir, pkg)]
+        
+        if rust_packages_in_order:
+            log_info("\n" + "=" * 60)
+            log_info("Building Rust packages for all architectures using cross-compilation")
+            log_info("=" * 60)
+            
+            # Determine target architectures
+            target_platforms = []
+            if platform == "arm64":
+                target_platforms = [("amd64", "linux/amd64")]
+            elif platform == "amd64":
+                target_platforms = [("arm64", "linux/arm64")]
+            else:
+                log_warning(f"Unknown platform {platform}, skipping cross-architecture builds")
+            
+            # Build for cross-architecture
+            for cross_platform, cross_docker_platform in target_platforms:
+                log_info(f"\n{'=' * 60}")
+                log_info(f"Cross-compiling Rust packages for {cross_platform}")
+                log_info(f"{'=' * 60}")
+                
+                # Start native container for cross-compilation
+                cross_container_id = start_build_container(docker_platform, repo_root)
+                if not cross_container_id:
+                    log_error(f"Failed to start container for cross-compilation to {cross_platform}")
+                    continue
+                
+                try:
+                    for idx, package_name in enumerate(rust_packages_in_order, 1):
+                        # Check if package already exists for this architecture
+                        if skip_existing:
+                            binary_packages = get_binary_package_names(package_name, packages_dir)
+                            existing_debs = []
+                            for binary_pkg in binary_packages:
+                                deb_pattern = f"{binary_pkg}_*_{cross_platform}.deb"
+                                existing_debs.extend(repo_root.glob(deb_pattern))
+                            
+                            if existing_debs:
+                                log_info(f"\n[{idx}/{len(rust_packages_in_order)}] Skipping {package_name} for {cross_platform} (found {len(existing_debs)} .deb file(s))")
+                                continue
+                        
+                        log_info(f"\n[{idx}/{len(rust_packages_in_order)}] Cross-compiling {package_name} for {cross_platform}...")
+                        
+                        if build_package(package_name, cross_platform, cross_docker_platform, cross_container_id, timeout_seconds, log_file, force_source):
+                            log_success(f"[{idx}/{len(rust_packages_in_order)}] ✓ {package_name} ({cross_platform}) built successfully")
+                            succeeded.append(f"{package_name} ({cross_platform})")
+                        else:
+                            log_error(f"[{idx}/{len(rust_packages_in_order)}] ✗ {package_name} ({cross_platform}) build failed")
+                            failed.append(f"{package_name} ({cross_platform})")
+                finally:
+                    stop_build_container(cross_container_id)
 
     # Print summary
     log_info("\n" + "=" * 60)

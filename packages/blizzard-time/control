@@ -2,12 +2,12 @@ Source: blizzard-time
 Version: 1.0.0
 Upstream-URL: https://github.com/rdk-gdcs/BlizzardTime.git
 Upstream-Ref: HEAD
-Build-Depends: build-essential, cmake, pkg-config, blizzard-cpp-sdk, libblizzard-cpp-sdk-dev, blizzard-rdk
+Build-Depends: build-essential, cmake, pkg-config, blizzard-cpp-sdk, libblizzard-cpp-sdk-dev
 
 Package: blizzard-time
 Section: utils
 Priority: optional
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: blizzard-rdk, ${shlibs:Depends}, ${misc:Depends}
 Description: Blizzard Time Provider
  Time provider implementation for the Blizzard framework,
  providing time-related services for Blizzard applications.

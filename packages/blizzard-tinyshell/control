@@ -2,12 +2,12 @@ Source: blizzard-tinyshell
 Version: 1.0.0
 Upstream-URL: https://github.com/rdk-gdcs/BlizzardTinyShell.git
 Upstream-Ref: HEAD
-Build-Depends: build-essential, cmake, pkg-config, blizzard-cpp-sdk, libblizzard-cpp-sdk-dev, blizzard-rdk
+Build-Depends: build-essential, cmake, pkg-config, blizzard-cpp-sdk, libblizzard-cpp-sdk-dev
 
 Package: blizzard-tinyshell
 Section: utils
 Priority: optional
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: blizzard-rdk, ${shlibs:Depends}, ${misc:Depends}
 Description: Blizzard TinyShell
  TinyShell implementation for the Blizzard framework,
  providing a lightweight shell interface for Blizzard services.

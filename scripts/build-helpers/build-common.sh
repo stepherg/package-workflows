@@ -60,7 +60,7 @@ install_build_dependencies() {
     log_info "Build dependencies: $build_deps"
 
     # Split into system packages and custom packages
-    local base_system_pkgs="pkg-config git build-essential make autoconf automake libtool cmake file binutils dpkg-dev curl"
+    local base_system_pkgs="pkg-config git gawk build-essential make autoconf automake libtool cmake file binutils dpkg-dev curl"
     local system_pkgs=""
     local custom_pkgs=""
 
@@ -99,6 +99,13 @@ install_build_dependencies() {
         echo -e "[net]\ngit-fetch-with-cli = true" > /root/.cargo/config.toml
         export PATH="/root/.cargo/bin:$PATH"
         log_success "Rust installed: $(rustc --version)"
+        
+        # Check if package supports Rust cross-compilation
+        local rust_cross_marker="packages/$project/rust_cross_compile"
+        if [ -f "$rust_cross_marker" ]; then
+            log_info "Package supports Rust cross-compilation, setting up toolchain..."
+            setup_rust_cross_compile "$arch"
+        fi
     fi
 
     # Install custom packages
@@ -115,6 +122,63 @@ install_build_dependencies() {
     done
 
     log_success "Build dependencies installed"
+}
+
+# Setup Rust cross-compilation toolchain
+# Args: $1 = target architecture (arm64 or amd64)
+setup_rust_cross_compile() {
+    local target_arch=$1
+    local host_arch=$(uname -m)
+    
+    log_info "Host architecture: $host_arch, Target architecture: $target_arch"
+    
+    # Determine if cross-compilation is needed
+    local needs_cross=false
+    local rust_target=""
+    local gcc_prefix=""
+    local linker_var=""
+    
+    if [ "$host_arch" = "aarch64" ] || [ "$host_arch" = "arm64" ]; then
+        if [ "$target_arch" = "amd64" ]; then
+            needs_cross=true
+            rust_target="x86_64-unknown-linux-gnu"
+            gcc_prefix="x86-64-linux-gnu"
+            linker_prefix="x86_64-linux-gnu"
+            linker_var="CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER"
+            log_info "Setting up cross-compilation: arm64 host -> amd64 target"
+        fi
+    elif [ "$host_arch" = "x86_64" ] || [ "$host_arch" = "amd64" ]; then
+        if [ "$target_arch" = "arm64" ]; then
+            needs_cross=true
+            rust_target="aarch64-unknown-linux-gnu"
+            gcc_prefix="aarch64-linux-gnu"
+            linker_prefix="aarch64-linux-gnu"
+            linker_var="CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER"
+            log_info "Setting up cross-compilation: amd64 host -> arm64 target"
+        fi
+    fi
+    
+    if [ "$needs_cross" = true ]; then
+        log_info "Installing cross-compilation toolchain for $rust_target..."
+        
+        # Add Rust target
+        rustup target add "$rust_target"
+        log_success "Added Rust target: $rust_target"
+        
+        # Install cross-compiler
+        apt-get install -y -qq gcc-$gcc_prefix g++-$gcc_prefix
+        log_success "Installed cross-compiler: gcc-$gcc_prefix"
+        
+        # Set linker environment variable
+        export "$linker_var"="${linker_prefix}-gcc"
+        log_success "Set $linker_var=${linker_prefix}-gcc"
+        
+        # Export the Rust target for use in build scripts
+        export RUST_CROSS_TARGET="$rust_target"
+        log_success "Rust cross-compilation setup complete"
+    else
+        log_info "Native build detected, no cross-compilation setup needed"
+    fi
 }
 
 # Detect the build system used by the upstream project
@@ -455,8 +519,14 @@ build_cargo() {
 
     log_info "Building with Cargo (Rust)..."
 
-    # Build in release mode
-    cargo build --release
+    # Build in release mode, with cross-compilation target if set
+    if [ -n "${RUST_CROSS_TARGET:-}" ]; then
+        log_info "Cross-compiling for target: $RUST_CROSS_TARGET"
+        cargo build --release --target "$RUST_CROSS_TARGET"
+    else
+        log_info "Building for native target"
+        cargo build --release
+    fi
 
     log_success "Cargo build completed"
 
@@ -464,10 +534,16 @@ build_cargo() {
     local staging_dir="/tmp/staging-$project"
     mkdir -p "$staging_dir/usr/bin"
 
-    # Copy the binary from target/release/
+    # Determine the correct target directory
+    local target_dir="target/release"
+    if [ -n "${RUST_CROSS_TARGET:-}" ]; then
+        target_dir="target/$RUST_CROSS_TARGET/release"
+    fi
+
+    # Copy the binary from target/release/ or target/<triple>/release/
     local binary_name=$(grep -E "^name\s*=" Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
-    if [ -f "target/release/$binary_name" ]; then
-        cp "target/release/$binary_name" "$staging_dir/usr/bin/"
+    if [ -f "$target_dir/$binary_name" ]; then
+        cp "$target_dir/$binary_name" "$staging_dir/usr/bin/"
         chmod 755 "$staging_dir/usr/bin/$binary_name"
         log_success "Installed binary: $binary_name"
     else
@@ -910,9 +986,18 @@ EOF
     dpkg-deb --build "$pkg_dir" "$output_deb"
 
     if [ -f "$output_deb" ]; then
-        log_success "Package created: $output_deb"
+        log_success "Package created (create_single_deb): $output_deb"
         ls -lh "$output_deb"
-        apt-get install -y "./$output_deb"
+        
+        # Only install if architecture matches the host (skip for cross-compiled packages)
+        local host_arch=$(dpkg --print-architecture 2>/dev/null || uname -m)
+        if [ "$arch" = "$host_arch" ] || [ "$arch" = "all" ]; then
+            log_info "Installing package (architecture matches host)..."
+            apt-get install -y "./$output_deb" || log_warning "Failed to install package, continuing..."
+        else
+            log_info "Skipping install (cross-compiled: target=$arch, host=$host_arch)"
+        fi
+        
         return 0
     else
         log_error "Failed to create package"
@@ -1163,9 +1248,19 @@ EOF
     dpkg-deb --build "$pkg_dir" "$output_deb"
 
     if [ -f "$output_deb" ]; then
-        log_success "Package created: $output_deb"
+        log_success "Package created (create_package_from_section): $output_deb"
         ls -lh "$output_deb"
-        apt-get install -y "./$output_deb"         
+        
+        # Only install if architecture matches the host (skip for cross-compiled packages)
+        local host_arch=$(dpkg --print-architecture 2>/dev/null || uname -m)
+        if [ "$arch" = "$host_arch" ] || [ "$arch" = "all" ]; then
+            log_info "Installing package (architecture matches host)..."
+            apt-get install -y "./$output_deb" || log_warning "Failed to install package, continuing..."
+        else
+            log_info "Skipping install (cross-compiled: target=$arch, host=$host_arch)"
+        fi
+        
+        return 0
     else
         log_error "Failed to create package: $pkg_name"
         return 1

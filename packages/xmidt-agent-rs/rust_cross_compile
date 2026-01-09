@@ -1,0 +1,8 @@
+# This package uses Rust cross-compilation for non-native architectures.
+# When building for a different architecture than the host:
+# - Rust target will be added via rustup
+# - Cross-compiler toolchain will be installed
+# - RUST_CROSS_TARGET environment variable will be set
+# - Appropriate CARGO_TARGET_*_LINKER will be set
+#
+# Your build script should use: cargo build --target $RUST_CROSS_TARGET (if set)
